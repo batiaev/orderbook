@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+}
+
+sourceCompatibility = '17'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    implementation "org.slf4j:slf4j-api:${slf4jVersion}"
+    implementation "ch.qos.logback:logback-classic:${lockbackVersion}"
+    implementation "com.lmax:disruptor:${disruptorVersion}"
+    implementation "com.neovisionaries:nv-websocket-client:${websocketVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
+//    implementation 'org.eclipse.collections:eclipse-collections-api:11.1.0'
+//    implementation 'org.eclipse.collections:eclipse-collections:11.1.0'
+
+    testImplementation "com.github.tomakehurst:wiremock-jre8:${wireMockVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}"
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
