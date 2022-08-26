@@ -29,6 +29,7 @@ public class LongsMapOrderBook implements OrderBook {
     public static final BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
     public static final BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
     public static final Logger logger = LoggerFactory.getLogger(LongsMapOrderBook.class);
+    public static final int MAX_DEPTH = 100;
     private final TradingVenue venue;
     private final ProductId productId;
     private Instant lastUpdate;
@@ -38,7 +39,8 @@ public class LongsMapOrderBook implements OrderBook {
 
     public static OrderBook orderBook(OrderBookUpdateEvent snapshot, int depth) {
         return new LongsMapOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
-                toLongMap(BUY, snapshot.changes()), toLongMap(SELL, snapshot.changes()));
+                toLongMap(BUY, snapshot.changes(), Math.min(depth*2, MAX_DEPTH)),
+                toLongMap(SELL, snapshot.changes(), Math.min(depth*2, MAX_DEPTH)));
     }
 
     LongsMapOrderBook(TradingVenue venue, ProductId productId, Instant lastUpdate, int depth,
@@ -85,11 +87,11 @@ public class LongsMapOrderBook implements OrderBook {
     }
 
     private BigDecimal fromSize(long key) {
-        return BigDecimal.valueOf(key).divide(SIZE_MULTIPLIER, HALF_UP);
+        return BigDecimal.valueOf(key).setScale(16, HALF_UP).divide(SIZE_MULTIPLIER, HALF_UP);
     }
 
     private BigDecimal fromPrice(long key) {
-        return BigDecimal.valueOf(key).divide(PRICE_MULTIPLIER, HALF_UP);
+        return BigDecimal.valueOf(key).setScale(16, HALF_UP).divide(PRICE_MULTIPLIER, HALF_UP);
     }
 
     @Override

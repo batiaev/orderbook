@@ -27,9 +27,11 @@ public class LoggingEventHandler implements OrderBookEventHandler {
                     var truncatedOrderBook = orderBook.orderBook();
                     var builder = new StringBuilder(System.lineSeparator());
                     builder.append("SIDE    PRICE      SIZE").append(System.lineSeparator());
-                    for (OrderBookUpdateEvent.PriceLevel pl : truncatedOrderBook) {
-                        builder.append(String.format("%4s %8.2f %12.8f%n", pl.side(), pl.priceLevel(), pl.size()));
-                    }
+                    if (truncatedOrderBook != null)
+                        for (OrderBookUpdateEvent.PriceLevel pl : truncatedOrderBook) {
+                            if (pl != null)
+                                builder.append(String.format("%4s %8.2f %12.8f%n", pl.side(), pl.priceLevel(), pl.size()));
+                        }
                     logger.info("{}", builder);
                 }
             }

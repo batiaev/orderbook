@@ -12,15 +12,18 @@ import java.util.*;
 
 import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
+import static com.batiaev.orderbook.utils.OrderBookUtils.binarySearch;
 import static com.batiaev.orderbook.utils.OrderBookUtils.toMap;
 import static java.math.BigDecimal.valueOf;
 import static java.time.Instant.now;
 import static java.util.Arrays.asList;
+import static java.util.Collections.reverseOrder;
+import static java.util.Comparator.naturalOrder;
 
+@Deprecated
 public class LongArrayOrderBook implements OrderBook {
     public static final BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
     public static final BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
-    public static final long[] EMPTY = {0, 0};
     private final TradingVenue venue;
     private final ProductId productId;
     private Instant lastUpdate;
@@ -43,21 +46,24 @@ public class LongArrayOrderBook implements OrderBook {
         this.venue = venue;
         this.productId = productId;
         this.lastUpdate = lastUpdate;
-        this.bids = convertOrderBook(BUY, new TreeMap<>(bids), this.depth + 1);
-        this.asks = convertOrderBook(SELL, new TreeMap<>(asks), this.depth + 1);
+        this.bids = convertOrderBook(BUY, bids, this.depth * 2);
+        this.asks = convertOrderBook(SELL, asks, this.depth * 2);
         this.bidsSize = this.bids.length;
         this.asksSize = this.asks.length;
     }
 
     private long[][] convertOrderBook(Side side, Map<BigDecimal, BigDecimal> b, int depth) {
+        Comparator<BigDecimal> comparator = side.equals(BUY) ? reverseOrder() : naturalOrder();
+        var tmp = new TreeMap<BigDecimal, BigDecimal>(comparator);
+        tmp.putAll(b);
         int arraySize = Math.min(depth, b.size());
         var res = new long[arraySize][];
-        int idx = side.equals(SELL) ? 0 : res.length - 1;
-        for (Map.Entry<BigDecimal, BigDecimal> entry : b.entrySet()) {
+        int idx = 0;
+        for (Map.Entry<BigDecimal, BigDecimal> entry : tmp.entrySet()) {
             BigDecimal level = entry.getKey();
             BigDecimal size = entry.getValue();
-            res[side.equals(SELL) ? idx++ : idx--] = new long[]{level.multiply(PRICE_MULTIPLIER).longValue(), size.multiply(SIZE_MULTIPLIER).longValue()};
-            if (idx < 0 || idx >= res.length)
+            res[idx++] = new long[]{level.multiply(PRICE_MULTIPLIER).longValue(), size.multiply(SIZE_MULTIPLIER).longValue()};
+            if (idx >= res.length)
                 return res;
         }
         return res;
@@ -128,16 +134,18 @@ public class LongArrayOrderBook implements OrderBook {
     }
 
     public void update(Side side, long price, long size) {
-        if (side.equals(SELL)) {
-            long[] cur = new long[]{price, size};
-            //TODO replace O(n) to binary search O(logN)
-            for (int i = asks.length - 1; i >= 0; i--) {
-                if (cur[0] == asks[i][0]) {
-                    moveRemoved(cur, i, asks);
-                    return;
-                } else if (cur[0] > asks[i][0])
-                    break;
+        long[] cur = new long[]{price, size};
+        if (side.equals(SELL)) { //process asks
+            if (price < bids[0][0]) return; //should never happen
+            int idx = binarySearch(side, asks, cur[0]);
+            if (idx >= asks.length)
+                return;
+            if (cur[0] == asks[idx][0]) {
+                moveRemoved(cur, idx, asks);
+                return;
             }
+            if (cur[1]==0)
+                return;
             for (int i = 0; i < asks.length; i++) {
                 if (cur[0] < asks[i][0]) {
                     long[] tmp = new long[]{asks[i][0], asks[i][1]};
@@ -165,18 +173,21 @@ public class LongArrayOrderBook implements OrderBook {
                 }
             }
         } else {
-            long[] cur = new long[]{price, size};
-            //TODO replace O(n) to binary search O(logN)
-            for (int i = bids.length - 1; i >= 0; i--) {
-                if (cur[0] == bids[i][0]) {
-                    moveRemoved(cur, i, bids);
-                    return;
-                } else if (cur[0] < bids[i][0])
-                    break;
+            if (price > asks[0][0]) return; //should never happen
+            int idx = binarySearch(side, bids, cur[0]);
+            if (idx >= bids.length)
+                return;
+            if (cur[0] == bids[idx][0]) {
+                moveRemoved(cur, idx, bids);
+                return;
             }
-            for (int i = 0; i < bids.length; i++) {
+            if (cur[1]==0)
+                return;
+            long[] tmp = new long[2];
+            for (int i = idx; i < bids.length; i++) {
                 if (cur[0] > bids[i][0]) {
-                    long[] tmp = new long[]{bids[i][0], bids[i][1]};
+                    tmp[0] = bids[i][0];
+                    tmp[1] = bids[i][1];
                     bids[i][0] = cur[0];
                     bids[i][1] = cur[1];
                     cur[0] = tmp[0];
@@ -209,7 +220,7 @@ public class LongArrayOrderBook implements OrderBook {
         if (cur[1] == 0) {
             if (data.length - (i + 1) >= 0) {
                 System.arraycopy(data, i + 1, data, i + 1 - 1, data.length - (i + 1));
-                data[data.length - 1] = EMPTY;
+                data[data.length - 1]= new long[]{0,0};
             }
         } else {
             data[i][1] = cur[1];

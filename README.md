@@ -35,6 +35,16 @@ Default (product=ETH-USD depth=10 )
 ```bash
 java -jar ./build/libs/orderbook-0.0.1-SNAPSHOT-all.jar 
 ```
+Different implementations
+```bash
+java -jar ./build/libs/orderbook-0.0.1-SNAPSHOT-all.jar ETH-USD 5 treemap
+```
+```bash
+java -jar ./build/libs/orderbook-0.0.1-SNAPSHOT-all.jar ETH-USD 5 array
+```
+```bash
+java -jar ./build/libs/orderbook-0.0.1-SNAPSHOT-all.jar ETH-USD 5 longmap
+```
 Custom product and depth
 ```bash
 java -jar ./build/libs/orderbook-0.0.1-SNAPSHOT-all.jar BTC-USD 3
