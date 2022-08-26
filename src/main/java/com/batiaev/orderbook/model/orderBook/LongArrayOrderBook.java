@@ -5,8 +5,6 @@ import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.model.Side;
 import com.batiaev.orderbook.model.TradingVenue;
 import com.batiaev.orderbook.model.TwoWayQuote;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -20,7 +18,6 @@ import static java.time.Instant.now;
 import static java.util.Arrays.asList;
 
 public class LongArrayOrderBook implements OrderBook {
-    public static final Logger logger = LoggerFactory.getLogger(MapBasedOrderBook.class);
     public static final BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
     public static final BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
     public static final long[] EMPTY = {0, 0};
@@ -153,7 +150,7 @@ public class LongArrayOrderBook implements OrderBook {
             if (asks[0][0] <= bids[0][0]) {
                 int idx1 = 0;
                 int idx2 = 0;
-                while (idx2 < bids.length - 1) {
+                while (idx2 < bids.length) {
                     if (bids[idx2][0] < asks[0][0]) {
                         bids[idx1][0] = bids[idx2][0];
                         bids[idx1][1] = bids[idx2][1];
@@ -161,7 +158,7 @@ public class LongArrayOrderBook implements OrderBook {
                     }
                     idx2++;
                 }
-                while (idx1 < bids.length - 1) {
+                while (idx1 < bids.length) {
                     bids[idx1][0] = 0;
                     bids[idx1][1] = 0;
                     idx1++;
@@ -189,17 +186,19 @@ public class LongArrayOrderBook implements OrderBook {
             if (bids[0][0] >= asks[0][0]) {
                 int idx1 = 0;
                 int idx2 = 0;
-                while (idx2 < asks.length - 1) {
+                while (idx2 < asks.length) {
                     if (bids[0][0] >= asks[idx2][0]) {
-                        asks[idx1][0] = asks[idx2][0];
-                        asks[idx1][1] = asks[idx2][1];
-                        idx1++;
+                        idx2++;
+                        continue;
                     }
+                    asks[idx1][0] = asks[idx2][0];
+                    asks[idx1][1] = asks[idx2][1];
+                    idx1++;
                     idx2++;
                 }
-                while (idx1 < bids.length - 1) {
-                    bids[idx1][0] = 0;
-                    bids[idx1][1] = 0;
+                while (idx1 < asks.length) {
+                    asks[idx1][0] = 0;
+                    asks[idx1][1] = 0;
                     idx1++;
                 }
             }

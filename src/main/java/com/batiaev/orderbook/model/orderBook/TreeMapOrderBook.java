@@ -20,8 +20,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.reverseOrder;
 import static java.util.Comparator.naturalOrder;
 
-public class MapBasedOrderBook implements OrderBook {
-    public static final Logger logger = LoggerFactory.getLogger(MapBasedOrderBook.class);
+public class TreeMapOrderBook implements OrderBook {
+    public static final Logger logger = LoggerFactory.getLogger(TreeMapOrderBook.class);
     private final TradingVenue venue;
     private final ProductId productId;
     private Instant lastUpdate;
@@ -30,12 +30,12 @@ public class MapBasedOrderBook implements OrderBook {
     private final SortedMap<BigDecimal, BigDecimal> bids;
 
     public static OrderBook orderBook(OrderBookUpdateEvent snapshot, int depth) {
-        return new MapBasedOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
+        return new TreeMapOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
                 toMap(BUY, snapshot.changes()), toMap(SELL, snapshot.changes()));
     }
 
-    public MapBasedOrderBook(TradingVenue venue, ProductId productId, Instant lastUpdate, int depth,
-                             Map<BigDecimal, BigDecimal> bids, Map<BigDecimal, BigDecimal> asks) {
+    public TreeMapOrderBook(TradingVenue venue, ProductId productId, Instant lastUpdate, int depth,
+                            Map<BigDecimal, BigDecimal> bids, Map<BigDecimal, BigDecimal> asks) {
         this.depth = depth;
         this.venue = venue;
         this.productId = productId;
@@ -130,7 +130,7 @@ public class MapBasedOrderBook implements OrderBook {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MapBasedOrderBook that = (MapBasedOrderBook) o;
+        TreeMapOrderBook that = (TreeMapOrderBook) o;
         return Objects.equals(bids, that.bids) && Objects.equals(asks, that.asks);
     }
 

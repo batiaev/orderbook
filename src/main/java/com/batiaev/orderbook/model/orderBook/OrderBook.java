@@ -13,7 +13,8 @@ import static java.math.BigDecimal.ZERO;
 
 public interface OrderBook {
     enum Type {
-        MAP_BASED,
+        TREE_MAP,
+        LONG_MAP,
         LONG_ARRAY
     }
 

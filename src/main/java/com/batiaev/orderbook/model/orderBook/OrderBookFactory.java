@@ -14,7 +14,8 @@ public class OrderBookFactory implements BiFunction<OrderBookUpdateEvent, Intege
     @Override
     public OrderBook apply(OrderBookUpdateEvent event, Integer depth) {
         return switch (type) {
-            case MAP_BASED -> MapBasedOrderBook.orderBook(event, depth);
+            case TREE_MAP -> TreeMapOrderBook.orderBook(event, depth);
+            case LONG_MAP -> LongsMapOrderBook.orderBook(event, depth);
             case LONG_ARRAY -> LongArrayOrderBook.orderBook(event, depth);
         };
     }

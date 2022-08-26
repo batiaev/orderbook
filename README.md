@@ -18,10 +18,10 @@ test implementation of order book based on ws feed from coinbase
 - order book has two implementations
   - sorted map - easy to use and understand solution
   - long arrays works better with caches but more complicated and current logic of orderbook updates is not efficient
-- order book size
-  - at map based stored full order book from exchange
-  - list based limit it to min (100, requiredDepth)
-  - api provide opportunity to get required amount of price level
+- order book implementations
+  - LongsMap: well-balanced implementation (mechanical sympathy to keep array in cache and easy to read code implementation), hppc primitive structure 
+  - TreeMap: basic, not mem efficient, but easy to understand, no extra dependencies, stored full order book
+  - ArrayList: mem optimised, cpu intensive(reordering of order book on each update), fixed size = min(100, requiredDepth) array always sorted to proper order
 
 ## Build
 
