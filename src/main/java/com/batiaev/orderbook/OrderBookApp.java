@@ -4,6 +4,7 @@ import com.batiaev.orderbook.handlers.ClearingEventHandler;
 import com.batiaev.orderbook.handlers.LoggingEventHandler;
 import com.batiaev.orderbook.handlers.OrderBookProcessor;
 import com.batiaev.orderbook.model.orderBook.OrderBookFactory;
+import com.batiaev.orderbook.serializer.OrderBookEventParser;
 import com.neovisionaries.ws.client.WebSocketException;
 
 import java.io.IOException;
@@ -23,10 +24,10 @@ public class OrderBookApp {
         var type = args.length >= 3 && "array".equals(args[2]) ? LONG_ARRAY : MAP_BASED;
         var orderBookFactory = new OrderBookFactory(type);
         var orderBookProcessor = new OrderBookProcessor(orderBookFactory, depth);
-        new CoinbaseClient(host)
-                .start(subscribeOn(channel, product),
-                        orderBookProcessor,
-                        new LoggingEventHandler(orderBookProcessor, 100),
-                        new ClearingEventHandler());
+        var eventBus = new DisruptorEventBus(orderBookProcessor,
+                new LoggingEventHandler(orderBookProcessor, 100, false),
+                new ClearingEventHandler());
+        new CoinbaseClient(host, new OrderBookEventParser())
+                .start(subscribeOn(channel, product), eventBus);
     }
 }

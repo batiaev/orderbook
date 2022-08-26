@@ -7,10 +7,6 @@ import java.util.function.BiFunction;
 public class OrderBookFactory implements BiFunction<OrderBookUpdateEvent, Integer, OrderBook> {
     private final OrderBook.Type type;
 
-    public static OrderBookFactory orderBookFactory(OrderBook.Type type) {
-        return new OrderBookFactory(type);
-    }
-
     public OrderBookFactory(OrderBook.Type type) {
         this.type = type;
     }
