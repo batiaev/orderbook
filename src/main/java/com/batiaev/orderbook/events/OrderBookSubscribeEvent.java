@@ -2,22 +2,24 @@ package com.batiaev.orderbook.events;
 
 import com.batiaev.orderbook.model.ProductId;
 
-public record OrderBookSubscribeEvent(ProductId productId, String channel) implements OrderBookEvent {
-    public static OrderBookSubscribeEvent subscribeOn(String productId, String channel) {
-        return subscribeOn(ProductId.productId(productId), channel);
+import java.util.Arrays;
+import java.util.List;
+
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
+public record OrderBookSubscribeEvent(String channel, List<ProductId> productId) {
+    public static OrderBookSubscribeEvent subscribeOn(String channel, String... productId) {
+        return new OrderBookSubscribeEvent(channel, Arrays.stream(productId).map(ProductId::productId).collect(toList()));
     }
 
-    public static OrderBookSubscribeEvent subscribeOn(ProductId productId, String channel) {
-        return new OrderBookSubscribeEvent(productId, channel);
-    }
-
-    @Override
-    public Type type() {
-        return Type.SUBSCRIBE;
+    public static OrderBookSubscribeEvent subscribeOn(String channel, ProductId... productId) {
+        return new OrderBookSubscribeEvent(channel, List.of(productId));
     }
 
     public String toJson() {
-        return "{\"type\": \"subscribe\", \"product_ids\": [\"" + productId.id() + "\"], \"channels\": [\"" + channel + "\"]}";
+        String collect = productId.stream().map(p -> "\"" + p.id() + "\"").collect(joining(", "));
+        return "{\"type\": \"subscribe\", \"product_ids\": [" + collect + "], \"channels\": [\"" + channel + "\"]}";
     }
 
     @Override

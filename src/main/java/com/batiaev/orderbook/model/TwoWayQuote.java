@@ -12,7 +12,7 @@ public record TwoWayQuote(BigDecimal bid, BigDecimal offer) {
 
     @Override
     public String toString() {
-        return String.format("BBO = %.2f / %.2f (%6.2f)", bid, offer, getSpread());
+        return String.format("BBO = %.2f / %.2f (%.3f)", bid, offer, getSpread());
     }
 
     public BigDecimal mid() {

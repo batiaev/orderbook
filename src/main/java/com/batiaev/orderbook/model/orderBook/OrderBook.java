@@ -1,23 +1,22 @@
 package com.batiaev.orderbook.model.orderBook;
 
-import com.batiaev.orderbook.events.OrderBookSnapshotEvent;
 import com.batiaev.orderbook.events.OrderBookUpdateEvent;
-import com.batiaev.orderbook.events.PriceLevel;
 import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.model.TradingVenue;
 import com.batiaev.orderbook.model.TwoWayQuote;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 
-import static com.batiaev.orderbook.model.Side.BUY;
-import static com.batiaev.orderbook.model.Side.SELL;
 import static java.math.BigDecimal.ZERO;
-import static java.math.BigDecimal.valueOf;
 
 public interface OrderBook {
+    enum Type {
+        MAP_BASED,
+        LONG_ARRAY
+    }
+
     BigDecimal PIPS = BigDecimal.valueOf(0.00000001);
 
     TradingVenue getVenue();
@@ -71,20 +70,15 @@ public interface OrderBook {
     /**
      * apply changes to existing order book
      */
-    OrderBook update(ProductId productId, Instant time, List<PriceLevel> changes);
-
-    default OrderBook update(OrderBookSnapshotEvent event) {
-        List<PriceLevel> changes = new ArrayList<>();
-        for (double[] ask : event.asks()) {
-            changes.add(new PriceLevel(BUY, valueOf(ask[0]), valueOf(ask[1])));
-        }
-        for (double[] bid : event.bids()) {
-            changes.add(new PriceLevel(SELL, valueOf(bid[0]), valueOf(bid[1])));
-        }
-        return update(event.productId(), Instant.EPOCH, changes);
-    }
+    OrderBook update(ProductId productId, Instant time, List<OrderBookUpdateEvent.PriceLevel> changes);
 
     default OrderBook update(OrderBookUpdateEvent event) {
         return update(event.productId(), event.time(), event.changes());
     }
+
+    default List<OrderBookUpdateEvent.PriceLevel> orderBook() {
+        return orderBook(getDepth());
+    }
+
+    List<OrderBookUpdateEvent.PriceLevel> orderBook(int depth);
 }

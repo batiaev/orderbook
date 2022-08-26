@@ -1,6 +1,10 @@
 package com.batiaev.orderbook.utils;
 
+import com.batiaev.orderbook.events.OrderBookUpdateEvent;
+import com.batiaev.orderbook.model.Side;
+
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -40,6 +44,15 @@ public class OrderBookUtils {
             bidPos += bids[bidIdx][1];
         }
         return valueOf(bids[bidIdx][0]);
+    }
+
+    public static Map<BigDecimal, BigDecimal> toMap(Side side, List<OrderBookUpdateEvent.PriceLevel> changes) {
+        TreeMap<BigDecimal, BigDecimal> res = new TreeMap<>();
+        for (OrderBookUpdateEvent.PriceLevel change : changes) {
+            if (side.equals(change.side()))
+                res.put(change.priceLevel(), change.size());
+        }
+        return res;
     }
 
     public static Map<BigDecimal, BigDecimal> toMap(double[][] asks) {

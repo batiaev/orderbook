@@ -1,33 +1,138 @@
 package com.batiaev.orderbook.model.orderBook;
 
+import com.batiaev.orderbook.events.OrderBookUpdateEvent;
+import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.model.Side;
+import com.batiaev.orderbook.model.TradingVenue;
+import com.batiaev.orderbook.model.TwoWayQuote;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.*;
 
+import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
+import static com.batiaev.orderbook.utils.OrderBookUtils.toMap;
+import static java.math.BigDecimal.valueOf;
+import static java.time.Instant.now;
+import static java.util.Arrays.asList;
 
-public class LongArrayOrderBook {
+public class LongArrayOrderBook implements OrderBook {
+    public static final Logger logger = LoggerFactory.getLogger(MapBasedOrderBook.class);
+    public static final BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
+    public static final BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
+    private final TradingVenue venue;
+    private final ProductId productId;
+    private Instant lastUpdate;
+    private final int depth;
     private final long[][] bids;
     private final long[][] asks;
 
-    public LongArrayOrderBook(long[][] bids, long[][] asks) {
-        this.bids = bids;
-        this.asks = asks;
+    public static OrderBook orderBook(OrderBookUpdateEvent snapshot, int depth) {
+        return new LongArrayOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
+                toMap(BUY, snapshot.changes()), toMap(SELL, snapshot.changes()));
+    }
+
+    public LongArrayOrderBook(TradingVenue venue, ProductId productId, Instant lastUpdate, int depth,
+                              Map<BigDecimal, BigDecimal> bids, Map<BigDecimal, BigDecimal> asks) {
+        if (depth > 100)
+            throw new IllegalArgumentException("Array based order book should be max 100 levels, not " + depth);
+        this.depth = depth;
+        this.venue = venue;
+        this.productId = productId;
+        this.lastUpdate = lastUpdate;
+        this.bids = convertOrderBook(BUY, new TreeMap<>(bids), this.depth + 1);
+        this.asks = convertOrderBook(SELL, new TreeMap<>(asks), this.depth + 1);
+    }
+
+    private long[][] convertOrderBook(Side side, Map<BigDecimal, BigDecimal> b, int depth) {
+        int arraySize = Math.min(depth, b.size());
+        var res = new long[arraySize][];
+        int idx = side.equals(SELL) ? 0 : res.length - 1;
+        for (Map.Entry<BigDecimal, BigDecimal> entry : b.entrySet()) {
+            BigDecimal level = entry.getKey();
+            BigDecimal size = entry.getValue();
+            res[side.equals(SELL) ? idx++ : idx--] = new long[]{level.multiply(PRICE_MULTIPLIER).longValue(), size.multiply(SIZE_MULTIPLIER).longValue()};
+            if (idx < 0 || idx >= res.length)
+                return res;
+        }
+        return res;
+    }
+
+    @Override
+    public TwoWayQuote getQuote(BigDecimal volume) {
+        var bestbid = BigDecimal.valueOf(bids[0][0] / PRICE_MULTIPLIER.doubleValue());
+        var bestask = BigDecimal.valueOf(asks[0][0] / PRICE_MULTIPLIER.doubleValue());
+        return new TwoWayQuote(bestbid, bestask);
+    }
+
+    @Override
+    public OrderBook update(ProductId productId, Instant time, List<OrderBookUpdateEvent.PriceLevel> changes) {
+        if (!Objects.equals(productId, this.productId))
+            throw new IllegalArgumentException("Received order book update for another product " + productId);
+        if (time.isBefore(lastUpdate)) {
+            //skip old updates
+            return this;
+        }
+        for (OrderBookUpdateEvent.PriceLevel change : changes) {
+            update(change.side(),
+                    change.priceLevel().multiply(PRICE_MULTIPLIER).longValue(),
+                    change.size().multiply(SIZE_MULTIPLIER).longValue());
+        }
+        lastUpdate = time;
+        return this;
+    }
+
+    @Override
+    public synchronized List<OrderBookUpdateEvent.PriceLevel> orderBook(int depth) {
+        int size = Math.min(depth * 2, asks.length + bids.length);
+        final var priceLevels = new OrderBookUpdateEvent.PriceLevel[size];
+        final var askString = filteredList(asks, SELL, depth);
+        final var bidString = filteredList(bids, BUY, depth);
+        int idx = 0;
+        for (int i = askString.size() - 1; i >= 0; i--) {
+            priceLevels[idx++] = askString.get(i);
+        }
+        for (OrderBookUpdateEvent.PriceLevel s : bidString) {
+            priceLevels[idx++] = s;
+        }
+        return asList(priceLevels);
+    }
+
+    private List<OrderBookUpdateEvent.PriceLevel> filteredList(long[][] data, Side side, int depth) {
+        int resultSize = Math.min(depth, data.length);
+        OrderBookUpdateEvent.PriceLevel[] a = new OrderBookUpdateEvent.PriceLevel[resultSize];
+        int idx = 0;
+        for (long[] entry : data) {
+            var price = BigDecimal.valueOf(entry[0] / PRICE_MULTIPLIER.doubleValue());
+            var size = BigDecimal.valueOf(entry[1] / SIZE_MULTIPLIER.doubleValue());
+            if (idx >= resultSize) return asList(a);
+            a[idx] = new OrderBookUpdateEvent.PriceLevel(side, price, size);
+            idx++;
+        }
+        return asList(a);
     }
 
     public void update(Side side, long price, long size) {
         if (side.equals(SELL)) {
             long[] cur = new long[]{price, size};
-            for (int i = 0; i < asks.length; i++) { //TODO replace O(n) to binary search O(logN)
-                if (price < asks[i][0]) {
+            //TODO replace O(n) to binary search O(logN)
+            for (int i = asks.length - 1; i >= 0; i--) {
+                if (cur[0] == asks[i][0]) {
+                    asks[i][1] = cur[1];
+                    return;
+                } else if (cur[0] > asks[i][0])
+                    break;
+            }
+            for (int i = 0; i < asks.length; i++) {
+                if (cur[0] < asks[i][0]) {
                     long[] tmp = new long[]{asks[i][0], asks[i][1]};
                     asks[i][0] = cur[0];
                     asks[i][1] = cur[1];
                     cur[0] = tmp[0];
                     cur[1] = tmp[1];
-                } else if (price == asks[i][0]) {
-                    asks[i][1] += size;
-                    break;
                 }
             }
             if (asks[0][0] <= bids[0][0]) {
@@ -49,16 +154,21 @@ public class LongArrayOrderBook {
             }
         } else {
             long[] cur = new long[]{price, size};
-            for (int i = 0; i < bids.length; i++) { //TODO replace O(n) to binary search O(logN)
-                if (price > bids[i][0]) {
+            //TODO replace O(n) to binary search O(logN)
+            for (int i = bids.length - 1; i >= 0; i--) {
+                if (cur[0] == bids[i][0]) {
+                    bids[i][1] = cur[1];
+                    return;
+                } else if (cur[0] < bids[i][0])
+                    break;
+            }
+            for (int i = 0; i < bids.length; i++) {
+                if (cur[0] > bids[i][0]) {
                     long[] tmp = new long[]{bids[i][0], bids[i][1]};
                     bids[i][0] = cur[0];
                     bids[i][1] = cur[1];
                     cur[0] = tmp[0];
                     cur[1] = tmp[1];
-                } else if (price == bids[i][0]) {
-                    bids[i][1] += size;
-                    break;
                 }
             }
             if (bids[0][0] >= asks[0][0]) {
@@ -81,12 +191,20 @@ public class LongArrayOrderBook {
         }
     }
 
-    public long[][] getBids() {
-        return bids.clone();
+    public TradingVenue getVenue() {
+        return venue;
     }
 
-    public long[][] getAsks() {
-        return asks.clone();
+    public ProductId getProductId() {
+        return productId;
+    }
+
+    public Instant getLastUpdate() {
+        return lastUpdate;
+    }
+
+    public int getDepth() {
+        return depth;
     }
 
     @Override
@@ -106,14 +224,6 @@ public class LongArrayOrderBook {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(System.lineSeparator() + "SIZE PRICE").append(System.lineSeparator());
-        for (int i = asks.length - 1; i >= 0; i--) {
-            builder.append(String.format("%6d %6d", asks[i][1], asks[i][0])).append(System.lineSeparator());
-        }
-        builder.append("------------------").append(System.lineSeparator());
-        for (long[] bid : bids) {
-            builder.append(String.format("%6d %6d", bid[1], bid[0])).append(System.lineSeparator());
-        }
-        return builder.append(System.lineSeparator()).toString();
+        return String.format("OrderBook for %s updated at %s with %s", productId.id(), lastUpdate, getQuote());
     }
 }
