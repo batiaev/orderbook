@@ -10,8 +10,10 @@ public class ProductId {
 
     private ProductId(String id) {
         String[] split = id.split("-");
+        if (split.length == 1)
+            throw new IllegalArgumentException("product id should have separator -");
         if (split.length != 2)
-            throw new IllegalStateException("Invalid product id " + id + " should have format <baseCurrency>-<counterCurrency> e.g. ETH-USD");
+            throw new IllegalArgumentException("Invalid product id " + id + " should have format <baseCurrency>-<counterCurrency> e.g. ETH-USD");
         base = currency(split[0]);
         counter = currency(split[1]);
     }
@@ -22,6 +24,14 @@ public class ProductId {
 
     public String id() {
         return base.id() + "-" + counter.id();
+    }
+
+    public Currency getBase() {
+        return base;
+    }
+
+    public Currency getCounter() {
+        return counter;
     }
 
     @Override

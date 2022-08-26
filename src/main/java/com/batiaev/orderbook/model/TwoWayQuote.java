@@ -6,6 +6,13 @@ import static java.math.BigDecimal.valueOf;
 import static java.math.RoundingMode.HALF_UP;
 
 public record TwoWayQuote(BigDecimal bid, BigDecimal offer) {
+    public TwoWayQuote(BigDecimal bid, BigDecimal offer) {
+        this.bid = bid;
+        this.offer = offer;
+        if (isInvalid())
+            throw new IllegalArgumentException("bid > ask");
+    }
+
     BigDecimal getSpread() {
         return offer.subtract(bid).abs();
     }

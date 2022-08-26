@@ -14,6 +14,7 @@ import static com.batiaev.orderbook.events.Event.Type.*;
 import static com.batiaev.orderbook.model.TradingVenue.COINBASE;
 import static java.time.Instant.EPOCH;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 
 public final class OrderBookUpdateEvent implements Event {
     private Type type;
@@ -23,6 +24,7 @@ public final class OrderBookUpdateEvent implements Event {
     private List<PriceLevel> changes;
 
     public OrderBookUpdateEvent() {
+        clear();
     }
 
     public OrderBookUpdateEvent(Type type, TradingVenue venue, ProductId productId, Instant time,
@@ -48,7 +50,7 @@ public final class OrderBookUpdateEvent implements Event {
         this.venue = null;
         this.productId = null;
         this.time = EPOCH;
-        this.changes = null;
+        this.changes = emptyList();
     }
 
     public Type type() {
