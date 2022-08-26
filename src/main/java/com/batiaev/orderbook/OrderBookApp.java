@@ -3,7 +3,6 @@ package com.batiaev.orderbook;
 import com.batiaev.orderbook.handlers.ClearingEventHandler;
 import com.batiaev.orderbook.handlers.LoggingEventHandler;
 import com.batiaev.orderbook.handlers.OrderBookProcessor;
-import com.batiaev.orderbook.model.orderBook.OrderBook;
 import com.batiaev.orderbook.model.orderBook.OrderBookFactory;
 import com.neovisionaries.ws.client.WebSocketException;
 
@@ -11,6 +10,8 @@ import java.io.IOException;
 
 import static com.batiaev.orderbook.events.OrderBookSubscribeEvent.subscribeOn;
 import static com.batiaev.orderbook.model.ProductId.productId;
+import static com.batiaev.orderbook.model.orderBook.OrderBook.Type.LONG_ARRAY;
+import static com.batiaev.orderbook.model.orderBook.OrderBook.Type.MAP_BASED;
 import static java.lang.Integer.parseInt;
 
 public class OrderBookApp {
@@ -19,7 +20,8 @@ public class OrderBookApp {
         var product = productId(args.length > 0 ? args[0] : "ETH-USD");
         int depth = args.length >= 2 ? parseInt(args[1]) : 10;
         var channel = "level2";
-        var orderBookFactory = new OrderBookFactory(OrderBook.Type.LONG_ARRAY);
+        var type = args.length >= 3 && "array".equals(args[2]) ? LONG_ARRAY : MAP_BASED;
+        var orderBookFactory = new OrderBookFactory(type);
         var orderBookProcessor = new OrderBookProcessor(orderBookFactory, depth);
         new CoinbaseClient(host)
                 .start(subscribeOn(channel, product),

@@ -207,6 +207,55 @@ class LongArrayOrderBookTest extends OrderBookTest {
         assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
     }
 
+    /**
+     * SIDE   S  S  S X  B  B
+     * PRICE 70 60 50 X 20 10
+     * SIZE  10 10 10 X 10 10
+     */
+    @Test
+    void should_delete_best_buy_order() {
+        var productId = productId("ETH-USD");
+        var depth = 3;
+        var orderBook = orderBook(COINBASE, productId, now(), depth,
+                orderBook(30, 10, 20, 10, 10, 10),
+                orderBook(50, 10, 60, 10, 70, 10));
+        var expected = orderBook(COINBASE, productId, now(), depth,
+                orderBook(20, 10, 10, 10),
+                orderBook(50, 10, 60, 10, 70, 10));
+        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+                List.of(priceLevel(BUY, 30, 0)));
+        //when
+        orderBook.update(event);
+        //then
+        List<OrderBookUpdateEvent.PriceLevel> actual = orderBook.orderBook(depth);
+        assertEquals(expected.orderBook(depth), actual);
+    }
+
+    /**
+     * SIDE   S  S X  B  B  B
+     * PRICE 70 60 X 30 20 10
+     * SIZE  10 10 X 10 10 10
+     */
+    @Test
+    void should_delete_best_sell_order() {
+        var productId = productId("ETH-USD");
+        var depth = 3;
+        var orderBook = orderBook(COINBASE, productId, now(), depth,
+                orderBook(30, 10, 20, 10, 10, 10),
+                orderBook(50, 10, 60, 10, 70, 10));
+        var expected = orderBook(COINBASE, productId, now(), depth,
+                orderBook(30, 10, 20, 10, 10, 10),
+                orderBook(60, 10, 70, 10));
+        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+                List.of(priceLevel(SELL, 50, 0)));
+        //when
+        orderBook.update(event);
+
+        System.out.println(orderBook.orderBook(depth));
+        //then
+        assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
+    }
+
     @Override
     OrderBook orderBook(TradingVenue venue, ProductId productId, Instant lastUpdate, int depth,
                         Map<BigDecimal, BigDecimal> bids, Map<BigDecimal, BigDecimal> asks) {

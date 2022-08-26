@@ -23,12 +23,15 @@ public class LongArrayOrderBook implements OrderBook {
     public static final Logger logger = LoggerFactory.getLogger(MapBasedOrderBook.class);
     public static final BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
     public static final BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
+    public static final long[] EMPTY = {0, 0};
     private final TradingVenue venue;
     private final ProductId productId;
     private Instant lastUpdate;
     private final int depth;
     private final long[][] bids;
+    private int bidsSize;
     private final long[][] asks;
+    private int asksSize;
 
     public static OrderBook orderBook(OrderBookUpdateEvent snapshot, int depth) {
         return new LongArrayOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
@@ -45,6 +48,8 @@ public class LongArrayOrderBook implements OrderBook {
         this.lastUpdate = lastUpdate;
         this.bids = convertOrderBook(BUY, new TreeMap<>(bids), this.depth + 1);
         this.asks = convertOrderBook(SELL, new TreeMap<>(asks), this.depth + 1);
+        this.bidsSize = this.bids.length;
+        this.asksSize = this.asks.length;
     }
 
     private long[][] convertOrderBook(Side side, Map<BigDecimal, BigDecimal> b, int depth) {
@@ -81,16 +86,26 @@ public class LongArrayOrderBook implements OrderBook {
                     change.priceLevel().multiply(PRICE_MULTIPLIER).longValue(),
                     change.size().multiply(SIZE_MULTIPLIER).longValue());
         }
+        bidsSize = updateSize(bids);
+        asksSize = updateSize(asks);
         lastUpdate = time;
         return this;
     }
 
+    private int updateSize(long[][] bids) {
+        for (int i = bids.length - 1; i >= 0; i--) {
+            if (bids[i][1] != 0)
+                return i + 1;
+        }
+        return 0;
+    }
+
     @Override
     public synchronized List<OrderBookUpdateEvent.PriceLevel> orderBook(int depth) {
-        int size = Math.min(depth * 2, asks.length + bids.length);
+        int size = Math.min(depth * 2, asksSize + bidsSize);
         final var priceLevels = new OrderBookUpdateEvent.PriceLevel[size];
-        final var askString = filteredList(asks, SELL, depth);
-        final var bidString = filteredList(bids, BUY, depth);
+        final var askString = filteredList(asks, asksSize, SELL, depth);
+        final var bidString = filteredList(bids, bidsSize, BUY, depth);
         int idx = 0;
         for (int i = askString.size() - 1; i >= 0; i--) {
             priceLevels[idx++] = askString.get(i);
@@ -101,8 +116,8 @@ public class LongArrayOrderBook implements OrderBook {
         return asList(priceLevels);
     }
 
-    private List<OrderBookUpdateEvent.PriceLevel> filteredList(long[][] data, Side side, int depth) {
-        int resultSize = Math.min(depth, data.length);
+    private List<OrderBookUpdateEvent.PriceLevel> filteredList(long[][] data, int dataSize, Side side, int depth) {
+        int resultSize = Math.min(depth, dataSize);
         OrderBookUpdateEvent.PriceLevel[] a = new OrderBookUpdateEvent.PriceLevel[resultSize];
         int idx = 0;
         for (long[] entry : data) {
@@ -121,7 +136,7 @@ public class LongArrayOrderBook implements OrderBook {
             //TODO replace O(n) to binary search O(logN)
             for (int i = asks.length - 1; i >= 0; i--) {
                 if (cur[0] == asks[i][0]) {
-                    asks[i][1] = cur[1];
+                    moveRemoved(cur, i, asks);
                     return;
                 } else if (cur[0] > asks[i][0])
                     break;
@@ -157,7 +172,7 @@ public class LongArrayOrderBook implements OrderBook {
             //TODO replace O(n) to binary search O(logN)
             for (int i = bids.length - 1; i >= 0; i--) {
                 if (cur[0] == bids[i][0]) {
-                    bids[i][1] = cur[1];
+                    moveRemoved(cur, i, bids);
                     return;
                 } else if (cur[0] < bids[i][0])
                     break;
@@ -188,6 +203,17 @@ public class LongArrayOrderBook implements OrderBook {
                     idx1++;
                 }
             }
+        }
+    }
+
+    private void moveRemoved(long[] cur, int i, long[][] data) {
+        if (cur[1] == 0) {
+            if (data.length - (i + 1) >= 0) {
+                System.arraycopy(data, i + 1, data, i + 1 - 1, data.length - (i + 1));
+                data[data.length - 1] = EMPTY;
+            }
+        } else {
+            data[i][1] = cur[1];
         }
     }
 

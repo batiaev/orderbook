@@ -8,7 +8,7 @@ test implementation of order book based on ws feed from coinbase
 - disruptor has couple processors
   - to process order book to maintain current state
   - to log updates of order book to console
-  - to cleanup events in righ buffer
+  - to cleanup events in ring buffer
 
 ## PoC limitations
 - websocket connectivity management not implemented
@@ -30,7 +30,17 @@ test implementation of order book based on ws feed from coinbase
 ```
 
 ## Run
+### From console
+#### Default (product=ETH-USD depth=10 )
+```bash
+java -jar ./build/libs/orderbook-0.0.1-SNAPSHOT-all.jar 
+```
+Custom product and depth
+```bash
+java -jar ./build/libs/orderbook-0.0.1-SNAPSHOT-all.jar BTC-USD 3
+```
 
+### From IDEA
 ```
 OrderBookApp idea configuration
 ```
