@@ -252,6 +252,45 @@ class MapBasedOrderBookTest extends OrderBookTest {
         assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
     }
 
+    @Test
+    void should_override_best_sell_with_new_buy_order() {
+        var productId = productId("ETH-USD");
+        var depth = 3;
+        var orderBook = orderBook(COINBASE, productId, now(), depth,
+                orderBook(30, 10, 20, 10, 10, 10),
+                orderBook(50, 10, 60, 10, 70, 10));
+        var expected = orderBook(COINBASE, productId, now(), depth,
+                orderBook(50, 5, 30, 10, 20, 10),
+                orderBook(60, 10, 70, 10));
+        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+                List.of(priceLevel(BUY, 50, 5)));
+        //when
+        orderBook.update(event);
+        //then
+        List<OrderBookUpdateEvent.PriceLevel> actual = orderBook.orderBook(depth);
+        assertEquals(expected.orderBook(depth), actual);
+    }
+
+    @Test
+    void should_override_best_buy_with_new_sell_order() {
+        var productId = productId("ETH-USD");
+        var depth = 3;
+        var orderBook = orderBook(COINBASE, productId, now(), depth,
+                orderBook(30, 10, 20, 10, 10, 10),
+                orderBook(50, 10, 60, 10, 70, 10));
+        var expected = orderBook(COINBASE, productId, now(), depth,
+                orderBook(20, 10, 10, 10),
+                orderBook(30, 5, 50, 10, 60, 10));
+        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+                List.of(priceLevel(SELL, 30, 5)));
+        //when
+        orderBook.update(event);
+
+        System.out.println(orderBook.orderBook(depth));
+        //then
+        assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
+    }
+
     @Override
     OrderBook orderBook(TradingVenue venue, ProductId productId, Instant lastUpdate, int depth,
                         Map<BigDecimal, BigDecimal> bids, Map<BigDecimal, BigDecimal> asks) {

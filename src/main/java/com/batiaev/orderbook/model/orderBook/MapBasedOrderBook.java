@@ -88,23 +88,31 @@ public class MapBasedOrderBook implements OrderBook {
                 return; //should never happen
             }
             if (size.compareTo(PIPS) < 0) bids.remove(price);
-            else bids.put(price, size);
+            else {
+                bids.put(price, size);
+                if (bids.firstKey().compareTo(asks.firstKey()) >= 0)
+                    asks.remove(asks.firstKey());
+            }
         } else {
             if (price.compareTo(bids.firstKey()) < 0) {
                 logger.trace("Invalid price update: askUpdate = {} and bestBid= {}", price, bids.firstKey());
                 return; //should never happen
             }
             if (size.compareTo(PIPS) < 0) asks.remove(price);
-            else asks.put(price, size);
+            else {
+                asks.put(price, size);
+                if (asks.firstKey().compareTo(bids.firstKey()) <= 0)
+                    bids.remove(bids.firstKey());
+            }
         }
-        if (asks.firstKey().doubleValue() < bids.firstKey().doubleValue()) {
+        if (asks.firstKey().doubleValue() <= bids.firstKey().doubleValue()) {
             logger.info("ASK < BID = {} < {}", asks.firstKey(), bids.firstKey());
         }
     }
 
     @Override
     public synchronized List<OrderBookUpdateEvent.PriceLevel> orderBook(int depth) {
-        int size = Math.min(depth * 2, asks.size() + bids.size());
+        int size = Math.min(depth, asks.size()) + Math.min(depth,bids.size());
         final var priceLevels = new OrderBookUpdateEvent.PriceLevel[size];
         final var askString = filteredList(asks, SELL, depth);
         final var bidString = filteredList(bids, BUY, depth);
