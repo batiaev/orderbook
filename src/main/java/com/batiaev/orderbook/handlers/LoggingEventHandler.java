@@ -9,12 +9,12 @@ public class LoggingEventHandler implements OrderBookEventHandler {
     private final OrderBookHolder orderBookHolder;
     private static final Logger logger = LoggerFactory.getLogger(LoggingEventHandler.class);
     private final int frequency;
-    private final boolean bboOnly;
+    private final boolean enableLogs;
 
-    public LoggingEventHandler(OrderBookHolder orderBookHolder, int frequency, boolean bboOnly) {
+    public LoggingEventHandler(OrderBookHolder orderBookHolder, int frequency, boolean enableLogs) {
         this.orderBookHolder = orderBookHolder;
         this.frequency = frequency;
-        this.bboOnly = bboOnly;
+        this.enableLogs = enableLogs;
     }
 
     @Override
@@ -22,9 +22,8 @@ public class LoggingEventHandler implements OrderBookEventHandler {
         if (sequence % frequency == 0) {
             final var orderBook = orderBookHolder.orderBook(event.productId());
             if (orderBook != null) {
-                if (bboOnly)
-                    logger.info("{}", orderBook);
-                else {
+                if (enableLogs) {
+//                    logger.info("{}", orderBook);
                     var truncatedOrderBook = orderBook.orderBook();
                     var builder = new StringBuilder(System.lineSeparator());
                     builder.append("SIDE    PRICE      SIZE").append(System.lineSeparator());

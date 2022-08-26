@@ -8,6 +8,8 @@ import java.util.function.Function;
 public interface OrderBookHolder extends Function<ProductId, OrderBook> {
     OrderBook orderBook(ProductId productId);
 
+    void clear();
+
     @Override
     default OrderBook apply(ProductId productId) {
         return orderBook(productId);
