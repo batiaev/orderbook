@@ -63,7 +63,7 @@ public class TreeMapOrderBook implements OrderBook {
 
     @Override
     public TwoWayQuote getQuote(BigDecimal volume) {
-        return new TwoWayQuote(asks.firstKey(), bids.firstKey());
+        return new TwoWayQuote(bids.firstKey(), asks.firstKey());
     }
 
     @Override

@@ -20,7 +20,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.reverseOrder;
 import static java.util.Comparator.naturalOrder;
 
-@Deprecated
 public class LongArrayOrderBook implements OrderBook {
     public static final BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
     public static final BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
@@ -144,7 +143,7 @@ public class LongArrayOrderBook implements OrderBook {
                 moveRemoved(cur, idx, asks);
                 return;
             }
-            if (cur[1]==0)
+            if (cur[1] == 0)
                 return;
             for (int i = 0; i < asks.length; i++) {
                 if (cur[0] < asks[i][0]) {
@@ -181,7 +180,7 @@ public class LongArrayOrderBook implements OrderBook {
                 moveRemoved(cur, idx, bids);
                 return;
             }
-            if (cur[1]==0)
+            if (cur[1] == 0)
                 return;
             long[] tmp = new long[2];
             for (int i = idx; i < bids.length; i++) {
@@ -220,7 +219,7 @@ public class LongArrayOrderBook implements OrderBook {
         if (cur[1] == 0) {
             if (data.length - (i + 1) >= 0) {
                 System.arraycopy(data, i + 1, data, i + 1 - 1, data.length - (i + 1));
-                data[data.length - 1]= new long[]{0,0};
+                data[data.length - 1] = new long[]{0, 0};
             }
         } else {
             data[i][1] = cur[1];

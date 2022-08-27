@@ -7,13 +7,12 @@ import com.batiaev.orderbook.model.TradingVenue;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
-import static com.batiaev.orderbook.events.Event.Type.*;
-import static com.batiaev.orderbook.model.TradingVenue.COINBASE;
+import static com.batiaev.orderbook.events.Event.Type.UNKNOWN;
 import static java.time.Instant.EPOCH;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 
 public final class OrderBookUpdateEvent implements Event {
@@ -21,7 +20,7 @@ public final class OrderBookUpdateEvent implements Event {
     private TradingVenue venue;
     private ProductId productId;
     private Instant time;
-    private List<PriceLevel> changes;
+    private List<PriceLevel> changes;//replace on two LongLongHashMap with bids and asks
 
     public OrderBookUpdateEvent() {
         clear();
@@ -36,13 +35,13 @@ public final class OrderBookUpdateEvent implements Event {
         this.changes = changes;
     }
 
-    public static OrderBookUpdateEvent update(ProductId productId, Instant time, PriceLevel[] priceLevels) {
-        return new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, time, asList(priceLevels));
-    }
-
-    public static OrderBookUpdateEvent snapshot(ProductId productId, PriceLevel[] priceLevels) {
-        return new OrderBookUpdateEvent(SNAPSHOT, COINBASE, productId, EPOCH, asList(priceLevels));
-    }
+//    public static OrderBookUpdateEvent update(ProductId productId, Instant time, PriceLevel[] priceLevels) {
+//        return new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, time, asList(priceLevels));
+//    }
+//
+//    public static OrderBookUpdateEvent snapshot(ProductId productId, PriceLevel[] priceLevels) {
+//        return new OrderBookUpdateEvent(SNAPSHOT, COINBASE, productId, EPOCH, asList(priceLevels));
+//    }
 
     @Override
     public void clear() {
@@ -51,6 +50,8 @@ public final class OrderBookUpdateEvent implements Event {
         this.productId = null;
         this.time = EPOCH;
         this.changes = emptyList();
+//        bids.clear();
+//        asks.clear();
     }
 
     public Type type() {
@@ -107,7 +108,8 @@ public final class OrderBookUpdateEvent implements Event {
                 Objects.equals(this.venue, that.venue) &&
                 Objects.equals(this.productId, that.productId) &&
                 Objects.equals(this.time, that.time) &&
-                Objects.equals(this.changes, that.changes);
+                new HashSet<>(this.changes).containsAll(that.changes)
+                && new HashSet<>(that.changes).containsAll(this.changes);
     }
 
     @Override

@@ -52,6 +52,10 @@ public class OrderBookEventParser implements EventParser, BiConsumer<OrderBookUp
     public List<OrderBookUpdateEvent.PriceLevel> parseSnapshotEvent(JsonNode node) {
         final var asksNode = node.get("asks");
         final var bidsNode = node.get("bids");
+        if (asksNode == null || bidsNode == null) {
+            //TODO throw exception to fail fast or log errors
+            return List.of();
+        }
         final var priceLevels = new OrderBookUpdateEvent.PriceLevel[asksNode.size() + bidsNode.size()];
         for (int idx = 0; idx < asksNode.size(); idx++) {
             priceLevels[idx] = getPriceLevel(asksNode.get(idx), Side.SELL);
