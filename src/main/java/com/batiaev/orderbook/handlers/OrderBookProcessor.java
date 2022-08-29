@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolder {
     public static final Logger logger = LoggerFactory.getLogger(OrderBookProcessor.class);
     private final int depth;
@@ -53,7 +55,13 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
         orderBooks.computeIfPresent(update.productId(), (productId, orderBook) -> orderBook.update(update));
     }
 
+    @Override
     public List<OrderBookUpdateEvent.PriceLevel> groupBy(ProductId productId, BigDecimal group) {
-        return orderBooks.computeIfPresent(productId, (pid, orderBook) -> orderBook.group(group)).orderBook();
+        return requireNonNull(orderBooks.computeIfPresent(productId, (pid, orderBook) -> orderBook.group(group))).orderBook();
+    }
+
+    @Override
+    public BigDecimal getGroup(ProductId productId) {
+        return orderBooks.containsKey(productId) ? orderBooks.get(productId).getGroup() : BigDecimal.ZERO;
     }
 }

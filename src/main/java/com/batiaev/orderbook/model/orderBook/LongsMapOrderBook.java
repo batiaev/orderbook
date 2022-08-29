@@ -33,6 +33,7 @@ public class LongsMapOrderBook implements OrderBook {
     private int depth;
     private final LongLongHashMap asks;
     private final LongLongHashMap bids;
+    private BigDecimal group;
 
     public static OrderBook orderBook(OrderBookUpdateEvent snapshot, int depth) {
         return new LongsMapOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
@@ -53,6 +54,11 @@ public class LongsMapOrderBook implements OrderBook {
         this.lastUpdate = lastUpdate;
         this.bids = bids;
         this.asks = asks;
+    }
+
+    @Override
+    public BigDecimal getGroup() {
+        return group;
     }
 
     @Override
@@ -84,6 +90,7 @@ public class LongsMapOrderBook implements OrderBook {
 
     @Override
     public OrderBook group(BigDecimal step) {
+        group = step;
         reset();//FIXME
         return this;
     }

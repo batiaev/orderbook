@@ -29,6 +29,7 @@ public class LongArrayOrderBook implements OrderBook {
     private int bidsSize;
     private final long[][] asks;
     private int asksSize;
+    private BigDecimal group = BigDecimal.ZERO;
 
     public static OrderBook orderBook(OrderBookUpdateEvent snapshot, int depth) {
         return new LongArrayOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
@@ -82,6 +83,7 @@ public class LongArrayOrderBook implements OrderBook {
 
     @Override
     public OrderBook group(BigDecimal step) {
+        this.group = step;
         reset();//FIXME
         return this;
     }
@@ -252,6 +254,11 @@ public class LongArrayOrderBook implements OrderBook {
         } else {
             data[i][1] = cur[1];
         }
+    }
+
+    @Override
+    public BigDecimal getGroup() {
+        return group;
     }
 
     public TradingVenue getVenue() {

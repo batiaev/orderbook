@@ -20,21 +20,26 @@ import static com.neovisionaries.ws.client.WebSocketExtension.PERMESSAGE_DEFLATE
 public class CoinbaseClient {
     public static final String HOST = "wss://ws-feed.exchange.coinbase.com";
     private WebSocket websocket;
-    private final OrderBookHolder orderBookHolder;
+    private OrderBookHolder orderBookHolder;
     private final Set<ProductId> products = new HashSet<>();
     private RingBuffer<OrderBookUpdateEvent> ringBuffer;
     private final OrderBookEventParser eventParser;
     private final String host;
 
-    public CoinbaseClient(String host, OrderBookHolder orderBookHolder, OrderBookEventParser eventParser) {
+    public CoinbaseClient(OrderBookEventParser eventParser) {
+        this(CoinbaseClient.HOST, eventParser);
+    }
+
+    public CoinbaseClient(String host, OrderBookEventParser eventParser) {
         this.host = host;
         this.eventParser = eventParser;
-        this.orderBookHolder = orderBookHolder;
     }
 
     public CoinbaseClient start(OrderBookSubscribeEvent event,
-                                EventBus eventBus) throws IOException, WebSocketException {
-        ringBuffer = eventBus.start();
+                                RingBuffer<OrderBookUpdateEvent> ringBuffer) throws IOException, WebSocketException {
+        if (orderBookHolder == null)
+            throw new IllegalStateException("order book holder should be specified before starting the feed");
+        this.ringBuffer = ringBuffer;
         this.websocket = getConnect(event);
         products.addAll(event.productId());
         return this;
@@ -54,7 +59,8 @@ public class CoinbaseClient {
                     @Override
                     public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame,
                                                WebSocketFrame clientCloseFrame, boolean closedByServer) {
-                        orderBookHolder.clear();
+                        if (orderBookHolder != null)
+                            orderBookHolder.clear();
                     }
 
                     @Override
@@ -71,5 +77,10 @@ public class CoinbaseClient {
         if (websocket != null && websocket.isOpen() && !products.containsAll(subscribeOn.productId())) {
             websocket.sendText(subscribeOn.toJson());
         }
+    }
+
+    public CoinbaseClient setOrderBookHolder(OrderBookHolder orderBookHolder) {
+        this.orderBookHolder = orderBookHolder;
+        return this;
     }
 }

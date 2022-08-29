@@ -3,7 +3,15 @@
 ![](https://img.shields.io/github/workflow/status/batiaev/orderbook/Java%20CI%20with%20Gradle)
 ![](https://img.shields.io/badge/coverage-93%25-green)
 
-Test implementation of order book based on ws feed from coinbase
+Order book implementation with ws feed from coinbase
+
+```java
+var orderBook = OrderBook.basedOn(LONG_MAP)
+    .withGroupingBy(0.01)
+    .withDepth(5)
+    .subscribedOn(coinbaseClient)
+    .start(withEvent(channel, product));
+```
 
 - CoinbaseClient on start open ws connection
 - on connect send message to subscribe to specified pair

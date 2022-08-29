@@ -1,15 +1,17 @@
 package com.batiaev.orderbook.resource;
 
 import com.batiaev.orderbook.CoinbaseClient;
-import com.batiaev.orderbook.handlers.GroupingEventHandler;
-import com.batiaev.orderbook.handlers.OrderBookProcessor;
+import com.batiaev.orderbook.handlers.OrderBookHolder;
 import com.batiaev.orderbook.model.ProductId;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import spark.Request;
+import spark.Response;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import static com.batiaev.orderbook.events.OrderBookSubscribeEvent.subscribeOn;
+import static com.batiaev.orderbook.events.OrderBookSubscribeEvent.withEvent;
 import static com.batiaev.orderbook.model.ProductId.productId;
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
@@ -27,46 +29,55 @@ public class OrderBookApi {
     );
     private final CoinbaseClient client;
     private final String channel;
-    private final OrderBookProcessor orderBookProcessor;
-    private final GroupingEventHandler groupingEventHandler;
+    private final OrderBookHolder orderBookHolder;
+    private final ObjectMapper objectMapper;
 
     public OrderBookApi(CoinbaseClient client, String channel,
-                        OrderBookProcessor orderBookProcessor,
-                        GroupingEventHandler groupingEventHandler) {
+                        OrderBookHolder orderBookHolder) {
+        this(client, channel, orderBookHolder, new ObjectMapper());
+    }
+
+    public OrderBookApi(CoinbaseClient client, String channel,
+                        OrderBookHolder orderBookHolder,
+                        ObjectMapper objectMapper) {
         this.client = client;
         this.channel = channel;
-        this.orderBookProcessor = orderBookProcessor;
-        this.groupingEventHandler = groupingEventHandler;
+        this.orderBookHolder = orderBookHolder;
+        this.objectMapper = objectMapper;
     }
 
     public void start() {
         after((request, response) -> corsHeaders.forEach(response::header));
-        get("/orderBook/:product/groupBy/:group", (req, res) -> {
-            var product = ofNullable(req.params("product")).map(ProductId::productId);
-            if (product.isEmpty()) return res;
-            var productId = product.get();
-            var group = ofNullable(req.params("group")).map(BigDecimal::new).orElse(groupingEventHandler.getGroup());
-            var ob = orderBookProcessor.groupBy(productId, group);
-            groupingEventHandler.setGroup(group);
-            res.status(SC_OK);
-            res.type(APPLICATION_JSON.toString());
-            return ob;
-        });
-        get("/orderbook/:product", (req, res) -> {
-            String prd = req.params("product");
-            if (prd != null) {
-                client.sendMessage(subscribeOn(channel, prd));
-            }
-            var productId = productId(prd);
-            var orderBook = orderBookProcessor.orderBook(productId);
-            while (orderBook == null) {
-                orderBook = orderBookProcessor.orderBook(productId);
-            }
-            var queryParams = req.queryParams("depth");
-            int v = queryParams != null ? parseInt(queryParams) : orderBook.getDepth();
-            res.status(SC_OK);
-            res.type(APPLICATION_JSON.toString());
-            return new ObjectMapper().writeValueAsString(orderBook.orderBook(v));
-        });
+        get("/orderBook/:product/groupBy/:group", this::groupOrderBook);
+        get("/orderbook/:product", this::getOrderBook);
+    }
+
+    private Object groupOrderBook(Request req, Response res) throws JsonProcessingException {
+        var product = ofNullable(req.params("product")).map(ProductId::productId);
+        if (product.isEmpty()) return res;
+        var productId = product.get();
+        var group = ofNullable(req.params("group")).map(BigDecimal::new).orElse(orderBookHolder.getGroup(productId));
+        var ob = orderBookHolder.groupBy(productId, group);
+        return ok(res, ob);
+    }
+
+    private Object getOrderBook(Request req, Response res) throws JsonProcessingException {
+        String prd = req.params("product");
+        if (prd == null) return res;
+        client.sendMessage(withEvent(channel, prd));
+        var productId = productId(prd);
+        var orderBook = orderBookHolder.orderBook(productId);
+        while (orderBook == null) {
+            orderBook = orderBookHolder.orderBook(productId);
+        }
+        var queryParams = req.queryParams("depth");
+        int v = queryParams != null ? parseInt(queryParams) : orderBook.getDepth();
+        return ok(res, orderBook.orderBook(v));
+    }
+
+    private Object ok(Response res, Object result) throws JsonProcessingException {
+        res.status(SC_OK);
+        res.type(APPLICATION_JSON.toString());
+        return objectMapper.writeValueAsString(result);
     }
 }

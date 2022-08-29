@@ -17,6 +17,12 @@ public interface OrderBook {
     BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
     BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
 
+    static OrderBookBuilder basedOn(Type type) {
+        return new OrderBookBuilder(type);
+    }
+
+    BigDecimal getGroup();
+
     enum Type {
         TREE_MAP,
         LONG_MAP,

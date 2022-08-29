@@ -29,6 +29,7 @@ public class TreeMapOrderBook implements OrderBook {
     private int depth;
     private final SortedMap<BigDecimal, BigDecimal> asks;
     private final SortedMap<BigDecimal, BigDecimal> bids;
+    private BigDecimal group = BigDecimal.ZERO;
 
     public static OrderBook orderBook(OrderBookUpdateEvent snapshot, int depth) {
         return new TreeMapOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
@@ -45,6 +46,11 @@ public class TreeMapOrderBook implements OrderBook {
         this.bids.putAll(bids);
         this.asks = new TreeMap<>(naturalOrder());
         this.asks.putAll(asks);
+    }
+
+    @Override
+    public BigDecimal getGroup() {
+        return group;
     }
 
     @Override
@@ -76,6 +82,7 @@ public class TreeMapOrderBook implements OrderBook {
 
     @Override
     public OrderBook group(BigDecimal step) {
+        group = step;
         reset();//FIXME
         return this;
     }

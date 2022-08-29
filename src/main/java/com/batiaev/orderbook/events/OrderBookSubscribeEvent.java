@@ -9,11 +9,11 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 public record OrderBookSubscribeEvent(String channel, List<ProductId> productId) {
-    public static OrderBookSubscribeEvent subscribeOn(String channel, String... productId) {
+    public static OrderBookSubscribeEvent withEvent(String channel, String... productId) {
         return new OrderBookSubscribeEvent(channel, Arrays.stream(productId).map(ProductId::productId).collect(toList()));
     }
 
-    public static OrderBookSubscribeEvent subscribeOn(String channel, ProductId... productId) {
+    public static OrderBookSubscribeEvent withEvent(String channel, ProductId... productId) {
         return new OrderBookSubscribeEvent(channel, List.of(productId));
     }
 
