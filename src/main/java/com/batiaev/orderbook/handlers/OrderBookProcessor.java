@@ -7,7 +7,9 @@ import com.batiaev.orderbook.model.orderBook.OrderBookFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolder {
@@ -26,6 +28,7 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
         switch (event.type()) {
             case SNAPSHOT -> init(event, sequence);
             case L2UPDATE -> update(event, sequence);
+            default -> {}
         }
     }
 
@@ -48,5 +51,9 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
     private void update(OrderBookUpdateEvent update, long sequence) {
         logger.trace("Processed update seq=" + sequence);
         orderBooks.computeIfPresent(update.productId(), (productId, orderBook) -> orderBook.update(update));
+    }
+
+    public List<OrderBookUpdateEvent.PriceLevel> groupBy(ProductId productId, BigDecimal group) {
+        return orderBooks.computeIfPresent(productId, (pid, orderBook) -> orderBook.group(group)).orderBook();
     }
 }

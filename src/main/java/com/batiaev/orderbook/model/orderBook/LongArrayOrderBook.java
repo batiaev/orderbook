@@ -14,19 +14,17 @@ import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
 import static com.batiaev.orderbook.utils.OrderBookUtils.binarySearch;
 import static com.batiaev.orderbook.utils.OrderBookUtils.toMap;
-import static java.math.BigDecimal.valueOf;
+import static java.time.Instant.EPOCH;
 import static java.time.Instant.now;
 import static java.util.Arrays.asList;
 import static java.util.Collections.reverseOrder;
 import static java.util.Comparator.naturalOrder;
 
 public class LongArrayOrderBook implements OrderBook {
-    public static final BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
-    public static final BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
     private final TradingVenue venue;
     private final ProductId productId;
     private Instant lastUpdate;
-    private final int depth;
+    private int depth;
     private final long[][] bids;
     private int bidsSize;
     private final long[][] asks;
@@ -73,6 +71,36 @@ public class LongArrayOrderBook implements OrderBook {
         var bestbid = BigDecimal.valueOf(bids[0][0] / PRICE_MULTIPLIER.doubleValue());
         var bestask = BigDecimal.valueOf(asks[0][0] / PRICE_MULTIPLIER.doubleValue());
         return new TwoWayQuote(bestbid, bestask);
+    }
+
+    @Override
+    public OrderBook resize(int depth) {
+        //FIXME add actual resize;
+        this.depth = depth;
+        return this;
+    }
+
+    @Override
+    public OrderBook group(BigDecimal step) {
+        reset();//FIXME
+        return this;
+    }
+
+    @Override
+    public synchronized OrderBook reset(OrderBookUpdateEvent event, int depth) {
+        bidsSize = 0;
+        asksSize = 0;
+        lastUpdate = EPOCH;
+        this.depth = depth;
+        for (long[] bid : bids) {
+            bid[0] = 0;
+            bid[1] = 0;
+        }
+        for (long[] ask : asks) {
+            ask[0] = 0;
+            ask[1] = 0;
+        }
+        return update(event.productId(), event.time(), event.changes());
     }
 
     @Override

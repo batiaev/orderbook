@@ -9,9 +9,14 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import static com.batiaev.orderbook.events.OrderBookUpdateEvent.emtpySnapshot;
 import static java.math.BigDecimal.ZERO;
+import static java.math.BigDecimal.valueOf;
 
 public interface OrderBook {
+    BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
+    BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
+
     enum Type {
         TREE_MAP,
         LONG_MAP,
@@ -42,31 +47,33 @@ public interface OrderBook {
     /**
      * @return resized order book to new depth, if new depth more that current - order book will have zero at the end of order book
      */
-//    OrderBook resize(int depth);
+    OrderBook resize(int depth);
 
     /**
      * @return new order book with grouped price levels according to provided steps
      */
-//    OrderBook group(int step);
+    OrderBook group(BigDecimal step);
 
     /**
      * delete internal state and reinitialise with new snapshot
      * Note: will be used same depth as for original order book
      */
-//    OrderBook reset(OrderBookSnapshotEvent event);
+    default OrderBook reset(OrderBookUpdateEvent event) {
+        return reset(event, getDepth());
+    }
 
     /**
      * remove all price levels of order book
      */
-//    default OrderBook reset() {
-//        return reset(emtpySnapshot(getProductId()));
-//    }
+    default OrderBook reset() {
+        return reset(emtpySnapshot(getProductId()), getDepth());
+    }
 
     /**
      * reset state of order book to snapshot with resize to new depth
      * Note: if new depth more that current - order book will contain zero price level at the end
      */
-//    OrderBook reset(OrderBookSnapshotEvent event, int depth);
+    OrderBook reset(OrderBookUpdateEvent event, int depth);
 
     /**
      * apply changes to existing order book

@@ -19,28 +19,25 @@ import java.util.Objects;
 
 import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
-import static com.batiaev.orderbook.utils.OrderBookUtils.toLongMap;
-import static java.math.BigDecimal.valueOf;
-import static java.math.RoundingMode.HALF_UP;
+import static com.batiaev.orderbook.utils.OrderBookUtils.*;
+import static java.time.Instant.EPOCH;
 import static java.time.Instant.now;
 import static java.util.Arrays.asList;
 
 public class LongsMapOrderBook implements OrderBook {
-    public static final BigDecimal PRICE_MULTIPLIER = valueOf(10000.);
-    public static final BigDecimal SIZE_MULTIPLIER = valueOf(100000000.);
     public static final Logger logger = LoggerFactory.getLogger(LongsMapOrderBook.class);
     public static final int MAX_DEPTH = 100;
     private final TradingVenue venue;
     private final ProductId productId;
     private Instant lastUpdate;
-    private final int depth;
+    private int depth;
     private final LongLongHashMap asks;
     private final LongLongHashMap bids;
 
     public static OrderBook orderBook(OrderBookUpdateEvent snapshot, int depth) {
         return new LongsMapOrderBook(snapshot.venue(), snapshot.productId(), now(), depth,
-                toLongMap(BUY, snapshot.changes(), Math.min(depth*2, MAX_DEPTH)),
-                toLongMap(SELL, snapshot.changes(), Math.min(depth*2, MAX_DEPTH)));
+                toLongMap(BUY, snapshot.changes(), Math.min(depth * 2, MAX_DEPTH)),
+                toLongMap(SELL, snapshot.changes(), Math.min(depth * 2, MAX_DEPTH)));
     }
 
     LongsMapOrderBook(TradingVenue venue, ProductId productId, Instant lastUpdate, int depth,
@@ -78,20 +75,26 @@ public class LongsMapOrderBook implements OrderBook {
         return new TwoWayQuote(fromPrice(asks.iterator().next().key), fromSize(bids.iterator().next().key));
     }
 
-    private long toPrice(BigDecimal price) {
-        return price.multiply(PRICE_MULTIPLIER).longValue();
+    @Override
+    public OrderBook resize(int depth) {
+        //FIXME add actual resize;
+        this.depth = depth;
+        return this;
     }
 
-    private long toSize(BigDecimal size) {
-        return size.multiply(SIZE_MULTIPLIER).longValue();
+    @Override
+    public OrderBook group(BigDecimal step) {
+        reset();//FIXME
+        return this;
     }
 
-    private BigDecimal fromSize(long key) {
-        return valueOf(key).setScale(8, HALF_UP).divide(SIZE_MULTIPLIER, HALF_UP);
-    }
-
-    private BigDecimal fromPrice(long key) {
-        return valueOf(key).setScale(2, HALF_UP).divide(PRICE_MULTIPLIER, HALF_UP);
+    @Override
+    public synchronized OrderBook reset(OrderBookUpdateEvent event, int depth) {
+        asks.clear();
+        bids.clear();
+        lastUpdate = EPOCH;
+        this.depth = depth;
+        return update(event.productId(), event.time(), event.changes());
     }
 
     @Override
@@ -110,8 +113,8 @@ public class LongsMapOrderBook implements OrderBook {
     }
 
     private void update(Side side, long price, long size) {
-        long firstAsk = new SortedIterationLongLongHashMap(asks, Long::compare).iterator().next().key;
-        long firstBid = new SortedIterationLongLongHashMap(bids, (x, y) -> Long.compare(y, x)).iterator().next().key;
+        long firstAsk = asks.size() == 0 ? 0 : firstAsk();
+        long firstBid = bids.size() == 0 ? 0 : firstBid();
         if (side.equals(BUY)) {
             if (price > firstAsk) {
                 logger.trace("Invalid price update: bidUpdate = {} and bestAsk= {}", price, firstAsk);
@@ -121,7 +124,7 @@ public class LongsMapOrderBook implements OrderBook {
                 bids.remove(price);
             else {
                 bids.put(price, size);
-                firstBid = new SortedIterationLongLongHashMap(bids, (x, y) -> Long.compare(y, x)).iterator().next().key;
+                firstBid = firstBid();
                 if (firstBid >= firstAsk)
                     asks.remove(firstAsk);
             }
@@ -134,14 +137,22 @@ public class LongsMapOrderBook implements OrderBook {
                 asks.remove(price);
             else {
                 asks.put(price, size);
-                firstAsk = new SortedIterationLongLongHashMap(asks, Long::compare).iterator().next().key;
+                firstAsk = firstAsk();
                 if (firstAsk <= firstBid)
                     bids.remove(firstBid);
             }
         }
         if (firstAsk <= firstBid) {
-            logger.info("ASK < BID = {} < {}", firstAsk, firstBid);
+            logger.info("ASK <= BID = {} <= {}", firstAsk, firstBid);
         }
+    }
+
+    private long firstAsk() {
+        return new SortedIterationLongLongHashMap(asks, Long::compare).iterator().next().key;
+    }
+
+    private long firstBid() {
+        return new SortedIterationLongLongHashMap(bids, (x, y) -> Long.compare(y, x)).iterator().next().key;
     }
 
     @Override

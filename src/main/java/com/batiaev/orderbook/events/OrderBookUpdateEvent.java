@@ -4,6 +4,7 @@ import com.batiaev.orderbook.model.Order;
 import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.model.Side;
 import com.batiaev.orderbook.model.TradingVenue;
+import com.batiaev.orderbook.utils.OrderBookUtils;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -11,8 +12,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
+import static com.batiaev.orderbook.events.Event.Type.SNAPSHOT;
 import static com.batiaev.orderbook.events.Event.Type.UNKNOWN;
+import static com.batiaev.orderbook.model.TradingVenue.COINBASE;
 import static java.time.Instant.EPOCH;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 
 public final class OrderBookUpdateEvent implements Event {
@@ -35,13 +39,17 @@ public final class OrderBookUpdateEvent implements Event {
         this.changes = changes;
     }
 
+    public static OrderBookUpdateEvent emtpySnapshot(ProductId productId) {
+        return snapshot(productId, new PriceLevel[0]);
+    }
+
 //    public static OrderBookUpdateEvent update(ProductId productId, Instant time, PriceLevel[] priceLevels) {
 //        return new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, time, asList(priceLevels));
 //    }
-//
-//    public static OrderBookUpdateEvent snapshot(ProductId productId, PriceLevel[] priceLevels) {
-//        return new OrderBookUpdateEvent(SNAPSHOT, COINBASE, productId, EPOCH, asList(priceLevels));
-//    }
+
+    public static OrderBookUpdateEvent snapshot(ProductId productId, PriceLevel[] priceLevels) {
+        return new OrderBookUpdateEvent(SNAPSHOT, COINBASE, productId, EPOCH, asList(priceLevels));
+    }
 
     @Override
     public void clear() {
@@ -50,8 +58,6 @@ public final class OrderBookUpdateEvent implements Event {
         this.productId = null;
         this.time = EPOCH;
         this.changes = emptyList();
-//        bids.clear();
-//        asks.clear();
     }
 
     public Type type() {
@@ -143,6 +149,10 @@ public final class OrderBookUpdateEvent implements Event {
                     ", priceLevel=" + priceLevel.doubleValue() +
                     ", size=" + size.doubleValue() +
                     '}';
+        }
+
+        public PriceLevel round(BigDecimal group) {
+            return new PriceLevel(side, OrderBookUtils.round(priceLevel, group), size);
         }
     }
 }

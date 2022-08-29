@@ -4,6 +4,8 @@ import com.batiaev.orderbook.events.OrderBookUpdateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
+
 public class LoggingEventHandler implements OrderBookEventHandler {
 
     private final OrderBookHolder orderBookHolder;
@@ -36,5 +38,18 @@ public class LoggingEventHandler implements OrderBookEventHandler {
                 }
             }
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LoggingEventHandler that = (LoggingEventHandler) o;
+        return frequency == that.frequency && enableLogs == that.enableLogs && Objects.equals(orderBookHolder, that.orderBookHolder);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderBookHolder, frequency, enableLogs);
     }
 }

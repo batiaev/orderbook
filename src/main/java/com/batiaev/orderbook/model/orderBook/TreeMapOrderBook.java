@@ -15,6 +15,7 @@ import java.util.*;
 import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
 import static com.batiaev.orderbook.utils.OrderBookUtils.toMap;
+import static java.time.Instant.EPOCH;
 import static java.time.Instant.now;
 import static java.util.Arrays.asList;
 import static java.util.Collections.reverseOrder;
@@ -25,7 +26,7 @@ public class TreeMapOrderBook implements OrderBook {
     private final TradingVenue venue;
     private final ProductId productId;
     private Instant lastUpdate;
-    private final int depth;
+    private int depth;
     private final SortedMap<BigDecimal, BigDecimal> asks;
     private final SortedMap<BigDecimal, BigDecimal> bids;
 
@@ -64,6 +65,28 @@ public class TreeMapOrderBook implements OrderBook {
     @Override
     public TwoWayQuote getQuote(BigDecimal volume) {
         return new TwoWayQuote(bids.firstKey(), asks.firstKey());
+    }
+
+    @Override
+    public OrderBook resize(int depth) {
+        //FIXME add actual resize;
+        this.depth = depth;
+        return this;
+    }
+
+    @Override
+    public OrderBook group(BigDecimal step) {
+        reset();//FIXME
+        return this;
+    }
+
+    @Override
+    public synchronized OrderBook reset(OrderBookUpdateEvent event, int depth) {
+        asks.clear();
+        bids.clear();
+        lastUpdate = EPOCH;
+        this.depth = depth;
+        return update(event.productId(), event.time(), event.changes());
     }
 
     @Override
@@ -106,13 +129,13 @@ public class TreeMapOrderBook implements OrderBook {
             }
         }
         if (asks.firstKey().doubleValue() <= bids.firstKey().doubleValue()) {
-            logger.info("ASK < BID = {} < {}", asks.firstKey(), bids.firstKey());
+            logger.info("ASK <= BID = {} <= {}", asks.firstKey(), bids.firstKey());
         }
     }
 
     @Override
     public synchronized List<OrderBookUpdateEvent.PriceLevel> orderBook(int depth) {
-        int size = Math.min(depth, asks.size()) + Math.min(depth,bids.size());
+        int size = Math.min(depth, asks.size()) + Math.min(depth, bids.size());
         final var priceLevels = new OrderBookUpdateEvent.PriceLevel[size];
         final var askString = filteredList(asks, SELL, depth);
         final var bidString = filteredList(bids, BUY, depth);

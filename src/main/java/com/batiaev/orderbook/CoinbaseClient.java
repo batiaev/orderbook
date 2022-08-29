@@ -18,6 +18,7 @@ import java.util.Set;
 import static com.neovisionaries.ws.client.WebSocketExtension.PERMESSAGE_DEFLATE;
 
 public class CoinbaseClient {
+    public static final String HOST = "wss://ws-feed.exchange.coinbase.com";
     private WebSocket websocket;
     private final OrderBookHolder orderBookHolder;
     private final Set<ProductId> products = new HashSet<>();

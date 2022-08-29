@@ -11,6 +11,9 @@ import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
 import static com.batiaev.orderbook.model.orderBook.LongsMapOrderBook.PRICE_MULTIPLIER;
 import static com.batiaev.orderbook.model.orderBook.LongsMapOrderBook.SIZE_MULTIPLIER;
+import static java.math.BigDecimal.ZERO;
+import static java.math.BigDecimal.valueOf;
+import static java.math.RoundingMode.HALF_UP;
 import static java.util.Collections.reverseOrder;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.naturalOrder;
@@ -18,6 +21,28 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toCollection;
 
 public class OrderBookUtils {
+
+    public static BigDecimal round(BigDecimal val, BigDecimal group) {
+        if (val.remainder(group).equals(ZERO))
+            return val.setScale(group.scale(), HALF_UP);
+        return val.add(group.subtract(val.remainder(group))).setScale(group.scale(), HALF_UP);
+    }
+
+    public static long toPrice(BigDecimal price) {
+        return price.multiply(PRICE_MULTIPLIER).longValue();
+    }
+
+    public static long toSize(BigDecimal size) {
+        return size.multiply(SIZE_MULTIPLIER).longValue();
+    }
+
+    public static BigDecimal fromSize(long key) {
+        return valueOf(key).setScale(8, HALF_UP).divide(SIZE_MULTIPLIER, HALF_UP);
+    }
+
+    public static BigDecimal fromPrice(long key) {
+        return valueOf(key).setScale(2, HALF_UP).divide(PRICE_MULTIPLIER, HALF_UP);
+    }
 
     public static SortedMap<BigDecimal, BigDecimal> toMap(Side side, List<OrderBookUpdateEvent.PriceLevel> changes) {
         var res = new TreeMap<BigDecimal, BigDecimal>(side.equals(BUY) ? reverseOrder() : naturalOrder());
