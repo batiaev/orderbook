@@ -2,7 +2,7 @@
   <configuration default="false" name="OrderBookApp" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="com.batiaev.orderbook.OrderBookApp" />
     <module name="orderbook.main" />
-    <option name="PROGRAM_PARAMETERS" value="ETH-USD 5 array" />
+    <option name="PROGRAM_PARAMETERS" value="ETH-USD 5 longmap" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="com.batiaev.orderbook.*" />

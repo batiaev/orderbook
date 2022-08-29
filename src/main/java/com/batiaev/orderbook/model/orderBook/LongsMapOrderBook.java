@@ -87,11 +87,11 @@ public class LongsMapOrderBook implements OrderBook {
     }
 
     private BigDecimal fromSize(long key) {
-        return BigDecimal.valueOf(key).setScale(16, HALF_UP).divide(SIZE_MULTIPLIER, HALF_UP);
+        return valueOf(key).setScale(8, HALF_UP).divide(SIZE_MULTIPLIER, HALF_UP);
     }
 
     private BigDecimal fromPrice(long key) {
-        return BigDecimal.valueOf(key).setScale(16, HALF_UP).divide(PRICE_MULTIPLIER, HALF_UP);
+        return valueOf(key).setScale(2, HALF_UP).divide(PRICE_MULTIPLIER, HALF_UP);
     }
 
     @Override
