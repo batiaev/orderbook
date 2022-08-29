@@ -15,6 +15,7 @@ import java.util.Objects;
 import static com.batiaev.orderbook.events.Event.Type.SNAPSHOT;
 import static com.batiaev.orderbook.events.Event.Type.UNKNOWN;
 import static com.batiaev.orderbook.model.TradingVenue.COINBASE;
+import static java.math.BigDecimal.valueOf;
 import static java.time.Instant.EPOCH;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -136,10 +137,10 @@ public final class OrderBookUpdateEvent implements Event {
     public record PriceLevel(
             Side side,
             BigDecimal priceLevel,
-            BigDecimal size
-    ) implements Order {
+            BigDecimal size) implements Order, Comparable<PriceLevel> {
+
         public static PriceLevel priceLevel(Side side, long priceLevel, long size) {
-            return new PriceLevel(side, BigDecimal.valueOf(priceLevel), BigDecimal.valueOf(size));
+            return new PriceLevel(side, valueOf(priceLevel), valueOf(size));
         }
 
         @Override
@@ -153,6 +154,16 @@ public final class OrderBookUpdateEvent implements Event {
 
         public PriceLevel round(BigDecimal group) {
             return new PriceLevel(side, OrderBookUtils.round(priceLevel, group), size);
+        }
+
+        @Override
+        public int compareTo(PriceLevel that) {
+            if (this.side != that.side)
+                return that.side.ordinal() - this.side.ordinal();
+            int level = this.priceLevel.compareTo(that.priceLevel);
+            if (level != 0)
+                return level;
+            return this.size.compareTo(that.size);
         }
     }
 }

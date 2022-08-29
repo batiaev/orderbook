@@ -64,4 +64,10 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
     public BigDecimal getGroup(ProductId productId) {
         return orderBooks.containsKey(productId) ? orderBooks.get(productId).getGroup() : BigDecimal.ZERO;
     }
+
+    @Override
+    public int resize(ProductId productId, int depth) {
+        orderBooks.computeIfPresent(productId, (prd, orderBook) -> orderBook.resize(depth));
+        return depth;
+    }
 }

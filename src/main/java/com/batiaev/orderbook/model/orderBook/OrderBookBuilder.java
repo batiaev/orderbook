@@ -46,6 +46,7 @@ public class OrderBookBuilder {
         var groupingEventHandler = new GroupingEventHandler(group);
         var eventBus = new DisruptorEventBus(
                 groupingEventHandler,
+                new DepthLimiterEventHandler(depth),
                 orderBookProcessor,
                 new LoggingEventHandler(orderBookProcessor, frequency, frequency != 0),
                 new ClearingEventHandler());

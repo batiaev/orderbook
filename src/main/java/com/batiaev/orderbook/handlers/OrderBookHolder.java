@@ -21,4 +21,6 @@ public interface OrderBookHolder extends Function<ProductId, OrderBook> {
     List<OrderBookUpdateEvent.PriceLevel> groupBy(ProductId productId, BigDecimal group);
 
     BigDecimal getGroup(ProductId productId);
+
+    int resize(ProductId productId, int depth);
 }
