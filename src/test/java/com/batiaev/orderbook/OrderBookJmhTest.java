@@ -1,6 +1,7 @@
 package com.batiaev.orderbook;
 
 import com.batiaev.orderbook.model.orderBook.OrderBook;
+import com.batiaev.orderbook.providers.CoinbaseClient;
 import com.batiaev.orderbook.serializer.OrderBookEventParser;
 import com.neovisionaries.ws.client.WebSocketException;
 import org.openjdk.jmh.annotations.*;

@@ -1,5 +1,6 @@
 package com.batiaev.orderbook;
 
+import com.batiaev.orderbook.eventbus.DisruptorEventBus;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;

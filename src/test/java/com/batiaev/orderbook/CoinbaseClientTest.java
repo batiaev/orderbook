@@ -1,8 +1,10 @@
 package com.batiaev.orderbook;
 
+import com.batiaev.orderbook.eventbus.DisruptorEventBus;
 import com.batiaev.orderbook.handlers.OrderBookProcessor;
 import com.batiaev.orderbook.model.orderBook.OrderBook;
 import com.batiaev.orderbook.model.orderBook.OrderBookFactory;
+import com.batiaev.orderbook.providers.CoinbaseClient;
 import com.batiaev.orderbook.serializer.OrderBookEventParser;
 import com.neovisionaries.ws.client.WebSocketException;
 import org.junit.jupiter.api.Test;
@@ -17,7 +19,7 @@ class CoinbaseClientTest {
     void should_start_client() throws WebSocketException, IOException {
         //given
         var orderBookHolder = new OrderBookProcessor(new OrderBookFactory(OrderBook.Type.TREE_MAP), 5);
-        var client = new CoinbaseClient(new OrderBookEventParser()).setOrderBookHolder(orderBookHolder);
+        var client = new CoinbaseClient(new OrderBookEventParser()).setStorage(orderBookHolder);
         var eventBus = new DisruptorEventBus((event, sequence, endOfBatch) -> {});
         //when
         client.start(withEvent("l2update", productId("ETH-USD")), eventBus.start());

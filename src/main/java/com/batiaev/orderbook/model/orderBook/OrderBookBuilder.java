@@ -1,18 +1,21 @@
 package com.batiaev.orderbook.model.orderBook;
 
-import com.batiaev.orderbook.CoinbaseClient;
-import com.batiaev.orderbook.DisruptorEventBus;
+import com.batiaev.orderbook.eventbus.DisruptorEventBus;
+import com.batiaev.orderbook.providers.OrderBookProvider;
 import com.batiaev.orderbook.events.OrderBookSubscribeEvent;
 import com.batiaev.orderbook.handlers.*;
+import com.batiaev.orderbook.model.TradingVenue;
 import com.neovisionaries.ws.client.WebSocketException;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 public class OrderBookBuilder {
     private final OrderBook.Type type;
+    private final Map<TradingVenue, OrderBookProvider> providers = new HashMap<>();
     private BigDecimal group;
-    private CoinbaseClient coinbaseClient;
     private int depth;
     private int frequency = -1;
 
@@ -35,8 +38,10 @@ public class OrderBookBuilder {
         return this;
     }
 
-    public OrderBookBuilder subscribedOn(CoinbaseClient coinbaseClient) {
-        this.coinbaseClient = coinbaseClient;
+    public OrderBookBuilder subscribedOn(OrderBookProvider... orderBookProviders) {
+        for (OrderBookProvider orderBookProvider : orderBookProviders) {
+            providers.put(orderBookProvider.venueName(), orderBookProvider);
+        }
         return this;
     }
 
@@ -50,7 +55,10 @@ public class OrderBookBuilder {
                 orderBookProcessor,
                 new LoggingEventHandler(orderBookProcessor, frequency, frequency != 0),
                 new ClearingEventHandler());
-        coinbaseClient.setOrderBookHolder(orderBookProcessor).start(event, eventBus.start());
+        var eventEnricher = eventBus.start();
+        providers.forEach((venue, orderBookProvider) -> {
+            orderBookProvider.setStorage(orderBookProcessor).start(event, eventEnricher);
+        });
         return orderBookProcessor;
     }
 }

@@ -4,14 +4,13 @@ import com.batiaev.orderbook.events.OrderBookUpdateEvent;
 import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.model.orderBook.OrderBook;
 
+import java.lang.ref.Cleaner;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 
-public interface OrderBookHolder extends Function<ProductId, OrderBook> {
+public interface OrderBookHolder extends Function<ProductId, OrderBook>, Cleaner.Cleanable {
     OrderBook orderBook(ProductId productId);
-
-    void clear();
 
     @Override
     default OrderBook apply(ProductId productId) {

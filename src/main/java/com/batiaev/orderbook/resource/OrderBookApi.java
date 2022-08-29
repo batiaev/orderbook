@@ -1,6 +1,6 @@
 package com.batiaev.orderbook.resource;
 
-import com.batiaev.orderbook.CoinbaseClient;
+import com.batiaev.orderbook.providers.CoinbaseClient;
 import com.batiaev.orderbook.handlers.OrderBookHolder;
 import com.batiaev.orderbook.model.ProductId;
 import com.fasterxml.jackson.core.JsonProcessingException;

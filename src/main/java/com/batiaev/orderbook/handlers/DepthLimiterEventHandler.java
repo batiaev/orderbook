@@ -3,7 +3,6 @@ package com.batiaev.orderbook.handlers;
 import com.batiaev.orderbook.events.Event;
 import com.batiaev.orderbook.events.OrderBookUpdateEvent;
 import com.batiaev.orderbook.model.ProductId;
-import com.batiaev.orderbook.model.Side;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -40,17 +39,22 @@ public class DepthLimiterEventHandler implements OrderBookEventHandler {
     }
 
     private List<OrderBookUpdateEvent.PriceLevel> sortAndClean(List<OrderBookUpdateEvent.PriceLevel> changes, int productDepth) {
-        var res = changes.stream()
-                .collect(groupingBy(OrderBookUpdateEvent.PriceLevel::side, toCollection(TreeSet::new)));
-
-        var buyres = new ArrayList<>(res.get(Side.BUY));
-        var sellres = new ArrayList<>(res.get(Side.SELL));
-        int buyIdx = Math.max(0, buyres.size() - productDepth);
-        int sellIdx = Math.min(buyres.size(), productDepth);
-
         var result = new ArrayList<OrderBookUpdateEvent.PriceLevel>();
-        result.addAll(buyres.subList(buyIdx, buyres.size()));
-        result.addAll(sellres.subList(0, sellIdx));
+        changes.stream()
+                .collect(groupingBy(OrderBookUpdateEvent.PriceLevel::side, toCollection(TreeSet::new)))
+                .forEach((side, priceLevels) -> {
+                    var tmpres = new ArrayList<>(priceLevels);
+                    switch (side) {
+                        case BUY -> {
+                            int buyIdx = Math.max(0, tmpres.size() - productDepth);
+                            result.addAll(tmpres.subList(buyIdx, tmpres.size()));
+                        }
+                        case SELL -> {
+                            int sellIdx = Math.min(tmpres.size(), productDepth);
+                            result.addAll(tmpres.subList(0, sellIdx));
+                        }
+                    }
+                });
         result.sort((pl1, pl2) -> pl2.priceLevel().compareTo(pl1.priceLevel()));
         return result;
     }
@@ -61,9 +65,5 @@ public class DepthLimiterEventHandler implements OrderBookEventHandler {
 
     public int getDepth(ProductId productId) {
         return depthPerProduct.getOrDefault(productId, defaultDepth);
-    }
-
-    private SortedSet<BigDecimal> newDepth() {
-        return new TreeSet<>();
     }
 }

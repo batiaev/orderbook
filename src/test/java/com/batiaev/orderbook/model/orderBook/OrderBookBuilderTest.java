@@ -1,6 +1,6 @@
 package com.batiaev.orderbook.model.orderBook;
 
-import com.batiaev.orderbook.CoinbaseClient;
+import com.batiaev.orderbook.providers.CoinbaseClient;
 import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.serializer.OrderBookEventParser;
 import com.neovisionaries.ws.client.WebSocketException;

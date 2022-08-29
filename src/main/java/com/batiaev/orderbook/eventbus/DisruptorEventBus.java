@@ -1,6 +1,7 @@
-package com.batiaev.orderbook;
+package com.batiaev.orderbook.eventbus;
 
 import com.batiaev.orderbook.events.OrderBookUpdateEvent;
+import com.batiaev.orderbook.handlers.DisruptorEventEnricher;
 import com.batiaev.orderbook.handlers.OrderBookEventHandler;
 import com.lmax.disruptor.AggregateEventHandler;
 import com.lmax.disruptor.BlockingWaitStrategy;
@@ -31,7 +32,7 @@ public class DisruptorEventBus implements EventBus {
     }
 
     @Override
-    public RingBuffer<OrderBookUpdateEvent> start() {
+    public EventEnricher<OrderBookUpdateEvent> start() {
         if (ringBuffer == null) {
             synchronized (this) {
                 if (ringBuffer == null) {
@@ -39,11 +40,11 @@ public class DisruptorEventBus implements EventBus {
                 }
             }
         }
-        return ringBuffer;
+        return new DisruptorEventEnricher(ringBuffer);
     }
 
     @Override
-    public void clear() {
+    public void clean() {
         for (OrderBookEventHandler handler : eventHandler) {
             handler.clear();
         }

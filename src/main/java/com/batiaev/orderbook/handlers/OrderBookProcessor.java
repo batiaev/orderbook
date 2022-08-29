@@ -40,7 +40,7 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
     }
 
     @Override
-    public void clear() {
+    public void clean() {
         orderBooks.clear();
     }
 

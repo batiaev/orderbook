@@ -5,7 +5,7 @@
     <option name="PROGRAM_PARAMETERS" value="ETH-USD 5 longmap" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="com.batiaev.orderbook.*" />
+        <option name="PATTERN" value="com.batiaev.orderbook.providers.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

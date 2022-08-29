@@ -1,6 +1,6 @@
 package com.batiaev.orderbook.resource;
 
-import com.batiaev.orderbook.CoinbaseClient;
+import com.batiaev.orderbook.providers.CoinbaseClient;
 import com.batiaev.orderbook.handlers.OrderBookProcessor;
 import com.batiaev.orderbook.model.orderBook.OrderBook;
 import com.batiaev.orderbook.model.orderBook.OrderBookFactory;
