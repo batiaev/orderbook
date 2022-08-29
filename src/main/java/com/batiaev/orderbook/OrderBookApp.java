@@ -23,6 +23,7 @@ public class OrderBookApp {
         var orderBook = OrderBook.basedOn(type)
                 .withGroupingBy(0.01)
                 .withDepth(depth)
+                .withLoggingFrequency(100)
                 .subscribedOn(coinbaseClient)
                 .start(withEvent(channel, product));
 

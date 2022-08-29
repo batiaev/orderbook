@@ -9,6 +9,7 @@ Order book implementation with ws feed from coinbase
 var orderBook = OrderBook.basedOn(LONG_MAP)
     .withGroupingBy(0.01)
     .withDepth(5)
+    .withLoggingFrequency(100)
     .subscribedOn(coinbaseClient)
     .start(withEvent(channel, product));
 ```

@@ -21,21 +21,19 @@ public class LoggingEventHandler implements OrderBookEventHandler {
 
     @Override
     public void onEvent(OrderBookUpdateEvent event, long sequence, boolean endOfBatch) {
-        if (sequence % frequency == 0) {
+        if (enableLogs && sequence % frequency == 0) {
             final var orderBook = orderBookHolder.orderBook(event.productId());
             if (orderBook != null) {
-                if (enableLogs) {
-//                    logger.info("{}", orderBook);
-                    var truncatedOrderBook = orderBook.orderBook();
-                    var builder = new StringBuilder(System.lineSeparator());
-                    builder.append("SIDE    PRICE      SIZE").append(System.lineSeparator());
-                    if (truncatedOrderBook != null)
-                        for (OrderBookUpdateEvent.PriceLevel pl : truncatedOrderBook) {
-                            if (pl != null)
-                                builder.append(String.format("%4s %8.2f %12.8f%n", pl.side(), pl.priceLevel(), pl.size()));
-                        }
-                    logger.info("{}", builder);
-                }
+//                logger.info("{}", orderBook);
+                var truncatedOrderBook = orderBook.orderBook();
+                var builder = new StringBuilder(System.lineSeparator());
+                builder.append("SIDE    PRICE      SIZE").append(System.lineSeparator());
+                if (truncatedOrderBook != null)
+                    for (OrderBookUpdateEvent.PriceLevel pl : truncatedOrderBook) {
+                        if (pl != null)
+                            builder.append(String.format("%4s %8.2f %12.8f%n", pl.side(), pl.priceLevel(), pl.size()));
+                    }
+                logger.info("{}", builder);
             }
         }
     }

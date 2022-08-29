@@ -14,6 +14,7 @@ public class OrderBookBuilder {
     private BigDecimal group;
     private CoinbaseClient coinbaseClient;
     private int depth;
+    private int frequency = -1;
 
     public OrderBookBuilder(OrderBook.Type type) {
         this.type = type;
@@ -29,6 +30,11 @@ public class OrderBookBuilder {
         return this;
     }
 
+    public OrderBookBuilder withLoggingFrequency(int frequency) {
+        this.frequency = frequency;
+        return this;
+    }
+
     public OrderBookBuilder subscribedOn(CoinbaseClient coinbaseClient) {
         this.coinbaseClient = coinbaseClient;
         return this;
@@ -41,7 +47,7 @@ public class OrderBookBuilder {
         var eventBus = new DisruptorEventBus(
                 groupingEventHandler,
                 orderBookProcessor,
-                new LoggingEventHandler(orderBookProcessor, 100, true),
+                new LoggingEventHandler(orderBookProcessor, frequency, frequency != 0),
                 new ClearingEventHandler());
         coinbaseClient.setOrderBookHolder(orderBookProcessor).start(event, eventBus.start());
         return orderBookProcessor;

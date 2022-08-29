@@ -45,7 +45,7 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
     }
 
     private OrderBook init(OrderBookUpdateEvent snapshot, long sequence) {
-        logger.info("Processed snapshot seq=" + sequence);
+        logger.trace("Processed snapshot seq=" + sequence);
         orderBooks.put(snapshot.productId(), orderBookFactory.apply(snapshot, depth));
         return orderBooks.get(snapshot.productId());
     }
