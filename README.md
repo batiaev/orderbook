@@ -11,25 +11,26 @@ var orderBook = OrderBook.basedOn(LONG_MAP)
     .withDepth(5)
     .withLoggingFrequency(100)
     .subscribedOn(coinbaseClient)
-    .start(withEvent(channel, product));
+    .start(withEvent("level2", "ETH-USD"));
 ```
 
 - CoinbaseClient on start open ws connection
 - on connect send message to subscribe to specified pair
 - on text message from ws coinbase client will put new event to disruptor
 - disruptor has couple processors
-  - to process order book to maintain current state
-  - to log updates of order book to console
-  - to cleanup events in ring buffer
+  - depth limiter to avoid storing unnecessary levels
+  - grouping handler to provider required granularity of price levels
+  - to process order book to maintain current order book state
+  - to log updates of order book to console on each tick or with required frequency e.g. ones per 100 tick
+  - to clean up events in ring buffer (optional)
 
 ## PoC limitations
+- Rest api with wide open cors implemented in dummy format just to have better visibility of order book updates (in additional to console logger) and to be able to play with different currencies/grouping. Check more at repo for UI https://github.com/batiaev/orderbook-ui
 - websocket connectivity management not implemented
   - currently assumed only happy path without logic of reconnection
 - ping pong with server to validate healthcheck not implemented
 - monitoring not added, but can be added as additional handler similar to logger
-- order book has two implementations
-  - sorted map - easy to use and understand solution
-  - long arrays works better with caches but more complicated and current logic of orderbook updates is not efficient
+- update event not optimal, required to rewrite to long arrays for bids and asks updates
 - order book implementations
   - LongsMap: well-balanced implementation (mechanical sympathy to keep array in cache and easy to read code implementation), hppc primitive structure 
   - TreeMap: basic, not mem efficient, but easy to understand, no extra dependencies, stored full order book
