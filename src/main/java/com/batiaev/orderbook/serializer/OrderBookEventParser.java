@@ -38,7 +38,7 @@ public class OrderBookEventParser implements EventParser, BiConsumer<OrderBookUp
         }
         event.setChanges(switch (type) {
             case SNAPSHOT -> parseSnapshotEvent(node);
-            case L2UPDATE -> parseUpdateEvent(node);
+            case L2UPDATE -> parseUpdateEvent(node, event.changes());
             case UNKNOWN -> List.of();//unreachable
         });
         final var productId = productId(node.get("product_id").asText());
@@ -73,8 +73,18 @@ public class OrderBookEventParser implements EventParser, BiConsumer<OrderBookUp
         );
     }
 
-    private List<OrderBookUpdateEvent.PriceLevel> parseUpdateEvent(JsonNode node) {
+    private List<OrderBookUpdateEvent.PriceLevel> parseUpdateEvent(JsonNode node, List<OrderBookUpdateEvent.PriceLevel> chngs) {
         var changes = node.get("changes");
+        if (chngs.size() == changes.size()) {
+            int idx = 0;
+            for (JsonNode change : changes) {
+                var side = Side.of(change.get(0).asText());
+                var level = new BigDecimal(change.get(1).asText());
+                var size = new BigDecimal(change.get(2).asText());
+                chngs.get(idx++).update(side, level, size);
+            }
+            return chngs;
+        }
         var priceLevels = new OrderBookUpdateEvent.PriceLevel[changes.size()];
         for (int i = 0; i < changes.size(); i++) {
             final var change = changes.get(i);

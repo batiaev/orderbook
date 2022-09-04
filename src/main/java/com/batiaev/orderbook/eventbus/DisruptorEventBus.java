@@ -4,12 +4,11 @@ import com.batiaev.orderbook.events.OrderBookUpdateEvent;
 import com.batiaev.orderbook.handlers.DisruptorEventEnricher;
 import com.batiaev.orderbook.handlers.OrderBookEventHandler;
 import com.lmax.disruptor.AggregateEventHandler;
-import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventFactory;
+import com.lmax.disruptor.LiteBlockingWaitStrategy;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
-import com.lmax.disruptor.util.DaemonThreadFactory;
 
 public class DisruptorEventBus implements EventBus {
     public static final EventFactory<OrderBookUpdateEvent> EVENT_FACTORY = OrderBookUpdateEvent::new;
@@ -22,10 +21,9 @@ public class DisruptorEventBus implements EventBus {
         this.eventHandler = eventHandler;
         this.disruptor = new Disruptor<>(EVENT_FACTORY,
                 DEFAULT_BUFFER_SIZE,
-                DaemonThreadFactory.INSTANCE,
+                CoreTreadFactory.CEQ,
                 ProducerType.SINGLE,
-                new BlockingWaitStrategy());
-//                new BusySpinWaitStrategy());
+                new LiteBlockingWaitStrategy());
         if (eventHandler.length == 0)
             throw new IllegalArgumentException("should be at least one handler");
         disruptor.handleEventsWith(new AggregateEventHandler<>(eventHandler));

@@ -1,8 +1,8 @@
 package com.batiaev.orderbook.providers;
 
+import com.batiaev.orderbook.eventbus.EventEnricher;
 import com.batiaev.orderbook.events.OrderBookSubscribeEvent;
 import com.batiaev.orderbook.events.OrderBookUpdateEvent;
-import com.batiaev.orderbook.eventbus.EventEnricher;
 import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.model.TradingVenue;
 import com.batiaev.orderbook.serializer.OrderBookEventParser;
@@ -46,52 +46,49 @@ public class CoinbaseClient implements OrderBookProvider {
     @Override
     public OrderBookProvider start(OrderBookSubscribeEvent event, EventEnricher<OrderBookUpdateEvent> eventBus) {
         this.eventBus = eventBus;
-        try {
-            this.websocket = getConnect(event);
-        } catch (IOException e) {
-            logger.error("Cannot start websocket connection", e);
-            throw new RuntimeException(e);
-        }
+        this.websocket = getConnect(event);
         products.addAll(event.productId());
         return this;
     }
 
-    private WebSocket getConnect(OrderBookSubscribeEvent event) throws IOException {
+    private WebSocket getConnect(OrderBookSubscribeEvent event) {
         try {
-            return new WebSocketFactory()
-                    .setConnectionTimeout(55000)
-                    .createSocket(URI.create(host))
-                    .addExtension(PERMESSAGE_DEFLATE)
-                    .addListener(new WebSocketAdapter() {
-                        @Override
-                        public void onConnected(WebSocket websocket, Map<String, List<String>> headers) {
-                            websocket.sendText(event.toJson());
-                        }
-
-                        @Override
-                        public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame,
-                                                   WebSocketFrame clientCloseFrame, boolean closedByServer) {
-                            if (storage != null) storage.clean();
-                        }
-
-                        @Override
-                        public void onTextMessage(WebSocket websocket, String text) {
-                            eventBus.nextEvent(orderBookUpdateEvent -> eventParser.parse(orderBookUpdateEvent, text));
-                        }
-                    }).connect();
-        } catch (WebSocketException e) {
-            throw new IOException(e);
+            var webSocket = getWebSocket(event);
+            return webSocket.connect();
+        } catch (WebSocketException | IOException e) {
+            logger.error("Cannot start websocket connection", e);
+            throw new RuntimeException(e);
         }
+    }
+
+    private WebSocket getWebSocket(OrderBookSubscribeEvent event) throws IOException {
+        return new WebSocketFactory()
+                .setConnectionTimeout(55000)
+                .createSocket(URI.create(host))
+                .addExtension(PERMESSAGE_DEFLATE)
+                .addListener(new WebSocketAdapter() {
+                    @Override
+                    public void onConnected(WebSocket websocket, Map<String, List<String>> headers) {
+                        websocket.sendText(event.toJson());
+                    }
+
+                    @Override
+                    public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame,
+                                               WebSocketFrame clientCloseFrame, boolean closedByServer) {
+                        if (storage != null) storage.clean();
+                    }
+
+                    @Override
+                    public void onTextMessage(WebSocket websocket, String text) {
+                        eventBus.nextEvent(orderBookUpdateEvent -> eventParser.parse(orderBookUpdateEvent, text));
+                    }
+                });
     }
 
     @Override
     public void sendMessage(OrderBookSubscribeEvent subscribeOn) {
         if (websocket == null) {
-            try {
-                websocket = getConnect(subscribeOn);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            websocket = getConnect(subscribeOn);
         }
         while (!websocket.isOpen()) {
             var state = websocket.getState();

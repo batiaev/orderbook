@@ -56,7 +56,7 @@ public class OrderBookUtils {
     public static LongLongHashMap toLongMap(Map<BigDecimal, BigDecimal> asks) {
         var res = new LongLongHashMap();
         for (Map.Entry<BigDecimal, BigDecimal> entry : asks.entrySet()) {
-            res.put(entry.getKey().multiply(PRICE_MULTIPLIER).longValue(), entry.getValue().multiply(SIZE_MULTIPLIER).longValue());
+            res.put(toPrice(entry.getKey()), toSize(entry.getValue()));
         }
         return res;
     }
@@ -74,7 +74,7 @@ public class OrderBookUtils {
             for (OrderBookUpdateEvent.PriceLevel priceLevel : collect.get(side)) {
                 if (idx++ > depth)
                     return res;
-                res.put(priceLevel.priceLevel().multiply(PRICE_MULTIPLIER).longValue(), priceLevel.size().multiply(SIZE_MULTIPLIER).longValue());
+                res.put(toPrice(priceLevel.priceLevel()), toSize(priceLevel.size()));
             }
         }
         return res;

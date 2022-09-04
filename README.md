@@ -1,7 +1,7 @@
 # Orderbook
 
 ![](https://img.shields.io/github/workflow/status/batiaev/orderbook/Java%20CI%20with%20Gradle)
-![](https://img.shields.io/badge/coverage-94%25-green)
+![](https://img.shields.io/badge/coverage-100%25-green)
 
 Order book implementation with ws feed from coinbase
 

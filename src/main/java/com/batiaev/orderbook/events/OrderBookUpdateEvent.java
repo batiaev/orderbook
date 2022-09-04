@@ -134,10 +134,19 @@ public final class OrderBookUpdateEvent implements Event {
                 "changes=" + changes + ']';
     }
 
-    public record PriceLevel(
-            Side side,
-            BigDecimal priceLevel,
-            BigDecimal size) implements Order, Comparable<PriceLevel> {
+    public static final class PriceLevel implements Order, Comparable<PriceLevel> {
+        private Side side;
+        private BigDecimal priceLevel;
+        private BigDecimal size;
+
+        public PriceLevel(
+                Side side,
+                BigDecimal priceLevel,
+                BigDecimal size) {
+            this.side = side;
+            this.priceLevel = priceLevel;
+            this.size = size;
+        }
 
         public static PriceLevel priceLevel(Side side, long priceLevel, long size) {
             return new PriceLevel(side, valueOf(priceLevel), valueOf(size));
@@ -153,7 +162,8 @@ public final class OrderBookUpdateEvent implements Event {
         }
 
         public PriceLevel round(BigDecimal group) {
-            return new PriceLevel(side, OrderBookUtils.round(priceLevel, group), size);
+            priceLevel = OrderBookUtils.round(priceLevel, group);
+            return this;
         }
 
         @Override
@@ -164,6 +174,40 @@ public final class OrderBookUpdateEvent implements Event {
             if (level != 0)
                 return level;
             return this.size.compareTo(that.size);
+        }
+
+        public Side side() {
+            return side;
+        }
+
+        public BigDecimal priceLevel() {
+            return priceLevel;
+        }
+
+        public BigDecimal size() {
+            return size;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            var that = (PriceLevel) obj;
+            return Objects.equals(this.side, that.side) &&
+                    Objects.equals(this.priceLevel, that.priceLevel) &&
+                    Objects.equals(this.size, that.size);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(side, priceLevel, size);
+        }
+
+        public PriceLevel update(Side side, BigDecimal level, BigDecimal size) {
+            this.side = side;
+            this.priceLevel = level;
+            this.size = size;
+            return this;
         }
     }
 }

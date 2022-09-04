@@ -32,7 +32,7 @@ class OrderBookProcessorTest {
         //when
         processor.onEvent(event, 1, true);
         //then
-        var orderBook = processor.orderBook(productId);
+        var orderBook = processor.apply(productId);
         assertNotNull(orderBook);
         assertEquals(productId, orderBook.getProductId());
         assertEquals(depth, orderBook.getDepth());

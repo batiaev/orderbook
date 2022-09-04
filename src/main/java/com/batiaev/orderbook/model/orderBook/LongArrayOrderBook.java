@@ -12,8 +12,7 @@ import java.util.*;
 
 import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
-import static com.batiaev.orderbook.utils.OrderBookUtils.binarySearch;
-import static com.batiaev.orderbook.utils.OrderBookUtils.toMap;
+import static com.batiaev.orderbook.utils.OrderBookUtils.*;
 import static java.time.Instant.EPOCH;
 import static java.time.Instant.now;
 import static java.util.Arrays.asList;
@@ -58,9 +57,7 @@ public class LongArrayOrderBook implements OrderBook {
         var res = new long[arraySize][];
         int idx = 0;
         for (Map.Entry<BigDecimal, BigDecimal> entry : tmp.entrySet()) {
-            BigDecimal level = entry.getKey();
-            BigDecimal size = entry.getValue();
-            res[idx++] = new long[]{level.multiply(PRICE_MULTIPLIER).longValue(), size.multiply(SIZE_MULTIPLIER).longValue()};
+            res[idx++] = new long[]{toPrice(entry.getKey()), toSize(entry.getValue())};
             if (idx >= res.length)
                 return res;
         }
@@ -115,7 +112,7 @@ public class LongArrayOrderBook implements OrderBook {
         }
         for (OrderBookUpdateEvent.PriceLevel change : changes) {
             update(change.side(),
-                    change.priceLevel().multiply(PRICE_MULTIPLIER).longValue(),
+                    toPrice(change.priceLevel()),
                     change.size().multiply(SIZE_MULTIPLIER).longValue());
         }
         bidsSize = updateSize(bids);

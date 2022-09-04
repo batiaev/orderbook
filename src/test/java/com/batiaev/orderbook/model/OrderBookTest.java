@@ -38,8 +38,8 @@ public abstract class OrderBookTest {
         //when
         var priceLevels = orderBook.orderBook(2);
         //then
-        assertEquals(expected.stream().map(Record::toString).collect(toList()),
-                priceLevels.stream().map(Record::toString).collect(toList()));
+        assertEquals(expected.stream().map(OrderBookUpdateEvent.PriceLevel::toString).collect(toList()),
+                priceLevels.stream().map(OrderBookUpdateEvent.PriceLevel::toString).collect(toList()));
     }
 
     @Test
@@ -59,8 +59,8 @@ public abstract class OrderBookTest {
         //when
         var priceLevels = orderBook.orderBook(100);
         //then
-        assertEquals(expected.stream().map(Record::toString).collect(toList()),
-                priceLevels.stream().map(Record::toString).collect(toList()));
+        assertEquals(expected.stream().map(OrderBookUpdateEvent.PriceLevel::toString).collect(toList()),
+                priceLevels.stream().map(OrderBookUpdateEvent.PriceLevel::toString).collect(toList()));
     }
 
     /**

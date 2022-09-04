@@ -113,30 +113,30 @@ public class TreeMapOrderBook implements OrderBook {
 
     private void update(Side side, BigDecimal price, BigDecimal size) {
         if (side.equals(BUY)) {
-            if (price.compareTo(asks.firstKey()) > 0) {
+            if (!asks.isEmpty() && price.compareTo(asks.firstKey()) > 0) {
                 logger.trace("Invalid price update: bidUpdate = {} and bestAsk= {}", price, asks.firstKey());
                 return; //should never happen
             }
             if (size.compareTo(PIPS) < 0) bids.remove(price);
             else {
                 bids.put(price, size);
-                if (bids.firstKey().compareTo(asks.firstKey()) >= 0)
+                if (!asks.isEmpty() && bids.firstKey().compareTo(asks.firstKey()) >= 0)
                     asks.remove(asks.firstKey());
             }
         } else {
-            if (price.compareTo(bids.firstKey()) < 0) {
+            if (!bids.isEmpty() && price.compareTo(bids.firstKey()) < 0) {
                 logger.trace("Invalid price update: askUpdate = {} and bestBid= {}", price, bids.firstKey());
                 return; //should never happen
             }
             if (size.compareTo(PIPS) < 0) asks.remove(price);
             else {
                 asks.put(price, size);
-                if (asks.firstKey().compareTo(bids.firstKey()) <= 0)
+                if (!bids.isEmpty() && asks.firstKey().compareTo(bids.firstKey()) <= 0)
                     bids.remove(bids.firstKey());
             }
         }
-        if (asks.firstKey().doubleValue() <= bids.firstKey().doubleValue()) {
-            logger.info("ASK <= BID = {} <= {}", asks.firstKey(), bids.firstKey());
+        if (!asks.isEmpty() && !bids.isEmpty() && asks.firstKey().doubleValue() < bids.firstKey().doubleValue()) {
+            logger.info("ASK < BID = {} < {}", asks.firstKey(), bids.firstKey());
         }
     }
 

@@ -7,9 +7,12 @@ import com.batiaev.orderbook.model.orderBook.OrderBook;
 import java.lang.ref.Cleaner;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public interface OrderBookHolder extends Function<ProductId, OrderBook>, Cleaner.Cleanable {
+    Map<String, Double> orderBooksUpdates();
+
     OrderBook orderBook(ProductId productId);
 
     @Override

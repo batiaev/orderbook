@@ -18,6 +18,8 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
     public static final Logger logger = LoggerFactory.getLogger(OrderBookProcessor.class);
     private final int depth;
     private final Map<ProductId, OrderBook> orderBooks = new HashMap<>();
+    private final Map<ProductId, Long> productUpdates = new HashMap<>();
+    private final Map<ProductId, Long> subscriptionTime = new HashMap<>();
     private final OrderBookFactory orderBookFactory;
 
     public OrderBookProcessor(OrderBookFactory orderBookFactory, int depth) {
@@ -30,8 +32,19 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
         switch (event.type()) {
             case SNAPSHOT -> init(event, sequence);
             case L2UPDATE -> update(event, sequence);
-            default -> {}
+            default -> {
+            }
         }
+    }
+
+    @Override
+    public Map<String, Double> orderBooksUpdates() {
+        var res = new HashMap<String, Double>();
+        long now = System.currentTimeMillis();
+        for (ProductId productId : orderBooks.keySet()) {
+            res.put(productId.id(), productUpdates.getOrDefault(productId, 1L) / ((now - subscriptionTime.getOrDefault(productId, now)) / 1000.));
+        }
+        return res;
     }
 
     @Override
@@ -52,6 +65,8 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
 
     private void update(OrderBookUpdateEvent update, long sequence) {
         logger.trace("Processed update seq=" + sequence);
+        productUpdates.put(update.productId(), productUpdates.getOrDefault(update.productId(), 0L) + 1);
+        subscriptionTime.putIfAbsent(update.productId(), System.currentTimeMillis());
         orderBooks.computeIfPresent(update.productId(), (productId, orderBook) -> orderBook.update(update));
     }
 

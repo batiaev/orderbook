@@ -1,10 +1,13 @@
 package com.batiaev.orderbook.model;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.batiaev.orderbook.model.Currency.currency;
 
 public class ProductId {
+    public static final Map<String, ProductId> cache = new HashMap<>();
     private final Currency base;
     private final Currency counter;
 
@@ -19,7 +22,7 @@ public class ProductId {
     }
 
     public static ProductId productId(String id) {
-        return new ProductId(id);
+        return cache.computeIfAbsent(id, ProductId::new);
     }
 
     public String id() {

@@ -149,8 +149,8 @@ public class LongsMapOrderBook implements OrderBook {
                     bids.remove(firstBid);
             }
         }
-        if (firstAsk <= firstBid) {
-            logger.info("ASK <= BID = {} <= {}", firstAsk, firstBid);
+        if (firstAsk < firstBid) {
+            logger.info("ASK < BID = {} < {}", firstAsk, firstBid);
         }
     }
 

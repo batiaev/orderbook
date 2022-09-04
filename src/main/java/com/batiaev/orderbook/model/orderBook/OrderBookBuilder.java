@@ -1,10 +1,10 @@
 package com.batiaev.orderbook.model.orderBook;
 
 import com.batiaev.orderbook.eventbus.DisruptorEventBus;
-import com.batiaev.orderbook.providers.OrderBookProvider;
 import com.batiaev.orderbook.events.OrderBookSubscribeEvent;
 import com.batiaev.orderbook.handlers.*;
 import com.batiaev.orderbook.model.TradingVenue;
+import com.batiaev.orderbook.providers.OrderBookProvider;
 import com.neovisionaries.ws.client.WebSocketException;
 
 import java.io.IOException;
@@ -53,8 +53,9 @@ public class OrderBookBuilder {
                 groupingEventHandler,
                 new DepthLimiterEventHandler(depth),
                 orderBookProcessor,
-                new LoggingEventHandler(orderBookProcessor, frequency, frequency != 0),
-                new ClearingEventHandler());
+                new LoggingEventHandler(orderBookProcessor, Math.max(0, frequency), frequency > 0)
+//                ,new ClearingEventHandler()
+        );
         var eventEnricher = eventBus.start();
         providers.forEach((venue, orderBookProvider) -> {
             orderBookProvider.setStorage(orderBookProcessor).start(event, eventEnricher);
