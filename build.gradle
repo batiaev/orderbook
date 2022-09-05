@@ -30,7 +30,7 @@ dependencies {
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}"
 
     testImplementation "org.openjdk.jmh:jmh-core:${jmhVersion}"
-    testImplementation "org.openjdk.jmh:jmh-generator-annprocess:${jmhVersion}"
+    testAnnotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:$jmhVersion"
 }
 
 tasks.named('test') {

@@ -1,5 +1,6 @@
 package com.batiaev.orderbook.resource;
 
+import com.batiaev.orderbook.events.OrderBookUpdateEvent;
 import com.batiaev.orderbook.handlers.OrderBookHolder;
 import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.providers.CoinbaseClient;
@@ -68,10 +69,7 @@ public class OrderBookApi {
     private Object getOrderBooks(Request req, Response res) throws JsonProcessingException {
         return ok(res, orderBookHolder.orderBooksUpdates().entrySet()
                 .stream()
-//                .sorted(Comparator.comparingDouble(Map.Entry::getValue))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
-//                .map(entry -> entry.getKey().id() + '=' + entry.getValue())
-//                .collect(toList()));
     }
 
     private Object groupOrderBook(Request req, Response res) throws JsonProcessingException {
@@ -98,7 +96,7 @@ public class OrderBookApi {
         }
         var queryParams = req.queryParams("depth");
         int v = queryParams != null ? parseInt(queryParams) : orderBook.getDepth();
-        return ok(res, orderBook.orderBook(v));
+        return ok(res, orderBook.orderBook(v).stream().map(OrderBookUpdateEvent.PriceLevel::toJson).toList());
     }
 
     private Object ok(Response res, Object result) throws JsonProcessingException {

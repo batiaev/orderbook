@@ -16,7 +16,7 @@ import static com.batiaev.orderbook.model.ProductId.productId;
 
 class CoinbaseClientTest {
     @Test
-    void should_start_client() throws WebSocketException, IOException {
+    void should_start_client() {
         //given
         var orderBookHolder = new OrderBookProcessor(new OrderBookFactory(OrderBook.Type.TREE_MAP), 5);
         var client = new CoinbaseClient(new OrderBookEventParser()).setStorage(orderBookHolder);
