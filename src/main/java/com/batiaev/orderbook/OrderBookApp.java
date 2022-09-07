@@ -27,22 +27,23 @@ public class OrderBookApp {
                 .withDepth(depth)
                 .withLoggingFrequency(100)
                 .subscribedOn(coinbaseClient)
-                .start(withEvent(channel, "CRV-USD",
-                        "PERP-USDT",
-                        "MATH-USD",
-                        "SOL-ETH",
-                        "DOGE-USDT",
-                        "BCH-EUR",
-                        "BTC-USD",
-                        "MUSD-USD",
-                        "OOKI-USD",
-                        "ETH-USD",
-                        "FIL-EUR",
-                        "MCO2-USDT",
-                        "POND-USD",
-                        "PAX-USD",
-                        "BCH-USD",
-                        "ETH-EUR"));
+                .start(withEvent(channel, product));
+//                .start(withEvent(channel, "CRV-USD",
+//                        "PERP-USDT",
+//                        "MATH-USD",
+//                        "SOL-ETH",
+//                        "DOGE-USDT",
+//                        "BCH-EUR",
+//                        "BTC-USD",
+//                        "MUSD-USD",
+//                        "OOKI-USD",
+//                        "ETH-USD",
+//                        "FIL-EUR",
+//                        "MCO2-USDT",
+//                        "POND-USD",
+//                        "PAX-USD",
+//                        "BCH-USD",
+//                        "ETH-EUR"));
 
         new OrderBookApi(coinbaseClient, channel, orderBook).start(port);
     }

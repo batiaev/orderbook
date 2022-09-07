@@ -6,17 +6,21 @@ import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.providers.CoinbaseClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import spark.Request;
 import spark.Response;
 import spark.Spark;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static com.batiaev.orderbook.events.OrderBookSubscribeEvent.withEvent;
 import static com.batiaev.orderbook.model.ProductId.productId;
 import static java.lang.Integer.parseInt;
+import static java.math.BigDecimal.ZERO;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toMap;
 import static javax.servlet.http.HttpServletResponse.SC_OK;
@@ -26,6 +30,7 @@ import static spark.Service.SPARK_DEFAULT_PORT;
 import static spark.Spark.*;
 
 public class OrderBookApi {
+    private final static ObjectMapper MAPPER = new ObjectMapper();
     private final long MAX_WAIT = Duration.ofSeconds(30).toMillis();
     private static final Map<String, String> corsHeaders = Map.of(
             "Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS",
@@ -96,7 +101,33 @@ public class OrderBookApi {
         }
         var queryParams = req.queryParams("depth");
         int v = queryParams != null ? parseInt(queryParams) : orderBook.getDepth();
-        return ok(res, orderBook.orderBook(v).stream().map(OrderBookUpdateEvent.PriceLevel::toJson).toList());
+        return ok(res, toJson(orderBook.orderBook(v)));
+    }
+
+    private List<ObjectNode> toJson(List<OrderBookUpdateEvent.PriceLevel> priceLevels) {
+        var levels = new ArrayList<ObjectNode>();
+        var total = ZERO;
+        for (int i = priceLevels.size() / 2 - 1; i >= 0; i--) {
+            var level = priceLevels.get(i);
+            total = total.add(level.size());
+            levels.add(0, toJson(level, total));
+        }
+        total = ZERO;
+        for (int i = priceLevels.size() / 2; i < priceLevels.size(); i++) {
+            var level = priceLevels.get(i);
+            total = total.add(level.size());
+            levels.add(toJson(level, total));
+        }
+        return levels;
+    }
+
+    private ObjectNode toJson(OrderBookUpdateEvent.PriceLevel priceLevel, BigDecimal total) {
+        var objectNode = MAPPER.createObjectNode();
+        objectNode.put("side", priceLevel.side().toString());
+        objectNode.put("priceLevel", priceLevel.priceLevel());
+        objectNode.put("size", priceLevel.size());
+        objectNode.put("total", total);
+        return objectNode;
     }
 
     private Object ok(Response res, Object result) throws JsonProcessingException {

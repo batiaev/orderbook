@@ -5,8 +5,6 @@ import com.batiaev.orderbook.model.ProductId;
 import com.batiaev.orderbook.model.Side;
 import com.batiaev.orderbook.model.TradingVenue;
 import com.batiaev.orderbook.utils.OrderBookUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -137,7 +135,6 @@ public final class OrderBookUpdateEvent implements Event {
     }
 
     public static final class PriceLevel implements Order, Comparable<PriceLevel> {
-        private final static ObjectMapper MAPPER = new ObjectMapper();
         private Side side;
         private BigDecimal priceLevel;
         private BigDecimal size;
@@ -164,13 +161,6 @@ public final class OrderBookUpdateEvent implements Event {
                     '}';
         }
 
-        public ObjectNode toJson() {
-            var objectNode = MAPPER.createObjectNode();
-            objectNode.put("side", side.toString());
-            objectNode.put("priceLevel", priceLevel);
-            objectNode.put("size", size);
-            return objectNode;
-        }
 
         public PriceLevel round(BigDecimal group) {
             priceLevel = OrderBookUtils.round(priceLevel, group);
