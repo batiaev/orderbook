@@ -11,6 +11,7 @@ import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
 import static com.batiaev.orderbook.model.orderBook.LongsMapOrderBook.PRICE_MULTIPLIER;
 import static com.batiaev.orderbook.model.orderBook.LongsMapOrderBook.SIZE_MULTIPLIER;
+import static java.lang.Math.max;
 import static java.math.BigDecimal.ZERO;
 import static java.math.BigDecimal.valueOf;
 import static java.math.RoundingMode.HALF_UP;
@@ -80,13 +81,17 @@ public class OrderBookUtils {
         return res;
     }
 
-    public static int binarySearch(Side side, long[][] a, long key) {
+    public static int binarySearch(Side side, long[] a, long key) {
+        return binarySearch(side, a, key, a.length);
+    }
+
+    public static int binarySearch(Side side, long[] a, long key, int size) {
         int low = 0;
-        int high = a.length - 1;
+        int high = max(low, size - 2);
         while (low <= high) {
-            int mid = low + high >>> 1;
-            long midVal = a[mid][0];
-            if (side.equals(SELL) ? midVal < key : midVal > key) {
+            int mid = (low + high) >>> 1;
+            long midVal = a[mid];
+            if (midVal != 0 && side.equals(SELL) ? midVal < key : midVal > key) {
                 low = mid + 1;
             } else {
                 if (side.equals(SELL) == (midVal <= key)) {

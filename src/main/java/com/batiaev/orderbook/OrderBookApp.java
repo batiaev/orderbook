@@ -21,29 +21,15 @@ public class OrderBookApp {
         var channel = "level2";
         var type = getType(args);
         var coinbaseClient = new CoinbaseClient(new OrderBookEventParser());
+//        var randomFeed = new RandomOrderBookProvider(ofMillis(20));
         int port = args.length > 3 ? parseInt(args[3]) : SPARK_DEFAULT_PORT;
         var orderBook = OrderBook.basedOn(type)
                 .withGroupingBy(0.01)
                 .withDepth(depth)
                 .withLoggingFrequency(100)
                 .subscribedOn(coinbaseClient)
+//                .subscribedOn(randomFeed)
                 .start(withEvent(channel, product));
-//                .start(withEvent(channel, "CRV-USD",
-//                        "PERP-USDT",
-//                        "MATH-USD",
-//                        "SOL-ETH",
-//                        "DOGE-USDT",
-//                        "BCH-EUR",
-//                        "BTC-USD",
-//                        "MUSD-USD",
-//                        "OOKI-USD",
-//                        "ETH-USD",
-//                        "FIL-EUR",
-//                        "MCO2-USDT",
-//                        "POND-USD",
-//                        "PAX-USD",
-//                        "BCH-USD",
-//                        "ETH-EUR"));
 
         new OrderBookApi(coinbaseClient, channel, orderBook).start(port);
     }

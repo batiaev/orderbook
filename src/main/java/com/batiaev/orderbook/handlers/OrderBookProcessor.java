@@ -65,6 +65,7 @@ public class OrderBookProcessor implements OrderBookEventHandler, OrderBookHolde
 
     private void update(OrderBookUpdateEvent update, long sequence) {
         logger.trace("Processed update seq=" + sequence);
+        orderBooks.putIfAbsent(update.productId(), orderBookFactory.apply(OrderBookUpdateEvent.emtpySnapshot(update.productId()), depth));
         productUpdates.put(update.productId(), productUpdates.getOrDefault(update.productId(), 0L) + 1);
         subscriptionTime.putIfAbsent(update.productId(), System.currentTimeMillis());
         orderBooks.computeIfPresent(update.productId(), (productId, orderBook) -> orderBook.update(update));

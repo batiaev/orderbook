@@ -1,6 +1,5 @@
 package com.batiaev.orderbook.model;
 
-import com.batiaev.orderbook.events.Event;
 import com.batiaev.orderbook.events.OrderBookUpdateEvent;
 import com.batiaev.orderbook.model.orderBook.OrderBook;
 import org.junit.jupiter.api.Assertions;
@@ -12,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static com.batiaev.orderbook.events.Event.Type.L2UPDATE;
 import static com.batiaev.orderbook.events.OrderBookUpdateEvent.PriceLevel.priceLevel;
 import static com.batiaev.orderbook.model.ProductId.productId;
 import static com.batiaev.orderbook.model.Side.BUY;
@@ -64,6 +64,75 @@ public abstract class OrderBookTest {
     }
 
     /**
+     * SIDE    B
+     * PRICE (40)
+     * SIZE  (+5)
+     */
+    @Test
+    void should_add_new_buy_order_to_empty_book() {
+        var productId = productId("ETH-USD");
+        var depth = 3;
+        var orderBook = orderBook(COINBASE, productId, now(), depth,
+                orderBook(),
+                orderBook());
+        var expected = orderBook(COINBASE, productId, now(), depth,
+                orderBook(40, 5),
+                orderBook());
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
+                List.of(priceLevel(BUY, 40, 5)));
+        //when
+        orderBook.update(event);
+        //then
+        assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
+    }
+
+    /**
+     * SIDE    S
+     * PRICE (40)
+     * SIZE  (+5)
+     */
+    @Test
+    void should_add_new_sell_order_to_empty_book() {
+        var productId = productId("ETH-USD");
+        var depth = 3;
+        var orderBook = orderBook(COINBASE, productId, now(), depth,
+                orderBook(),
+                orderBook());
+        var expected = orderBook(COINBASE, productId, now(), depth,
+                orderBook(),
+                orderBook(40, 5));
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
+                List.of(priceLevel(SELL, 40, 5)));
+        //when
+        orderBook.update(event);
+        //then
+        assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
+    }
+
+    /**
+     * SIDE   S  S  S X  B  B  B
+     * PRICE 70 60 50 X 30 20 10
+     * SIZE  10 10 10 X 10 10 10
+     */
+    @Test
+    void should_fill_empty_book_with_new_levels() {
+        var productId = productId("ETH-USD");
+        var depth = 3;
+        var orderBook = orderBook(COINBASE, productId, now(), depth,
+                orderBook(),
+                orderBook());
+        var expected = orderBook(COINBASE, productId, now(), depth,
+                orderBook(30, 10, 20, 10, 10, 10),
+                orderBook(50, 10, 60, 10, 70, 10));
+        //when
+        for (OrderBookUpdateEvent.PriceLevel priceLevel : expected.orderBook(depth)) {
+            orderBook.update(new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(), List.of(priceLevel)));
+        }
+        //then
+        assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
+    }
+
+    /**
      * SIDE   S  S  S X   B   B  B  B
      * PRICE 70 60 50 X (40) 30 20 10
      * SIZE  10 10 10 X (+5) 10 10 10
@@ -78,7 +147,7 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(40, 5, 30, 10, 20, 10),
                 orderBook(50, 10, 60, 10, 70, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(BUY, 40, 5)));
         //when
         orderBook.update(event);
@@ -101,7 +170,7 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(30, 10, 25, 5, 20, 10),
                 orderBook(50, 10, 60, 10, 70, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(BUY, 25, 5)));
         //when
         orderBook.update(event);
@@ -124,7 +193,7 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(30, 10, 20, 10, 10, 10),
                 orderBook(40, 5, 50, 10, 60, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(SELL, 40, 5)));
         //when
         orderBook.update(event);
@@ -149,7 +218,7 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(30, 10, 20, 10, 10, 10),
                 orderBook(50, 10, 55, 5, 60, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(SELL, 55, 5)));
         //when
         orderBook.update(event);
@@ -174,7 +243,7 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(30, 5, 20, 10, 10, 10),
                 orderBook(50, 10, 60, 10, 70, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(BUY, 30, 5)));
         //when
         orderBook.update(event);
@@ -197,7 +266,7 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(30, 10, 20, 10, 10, 10),
                 orderBook(50, 10, 60, 5, 70, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(SELL, 60, 5)));
         //when
         orderBook.update(event);
@@ -222,12 +291,12 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(20, 10, 10, 10),
                 orderBook(50, 10, 60, 10, 70, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(BUY, 30, 0)));
         //when
         orderBook.update(event);
         //then
-        List<OrderBookUpdateEvent.PriceLevel> actual = orderBook.orderBook(depth);
+        var actual = orderBook.orderBook(depth);
         Assertions.assertEquals(expected.orderBook(depth), actual);
     }
 
@@ -246,7 +315,7 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(30, 10, 20, 10, 10, 10),
                 orderBook(60, 10, 70, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(SELL, 50, 0)));
         //when
         orderBook.update(event);
@@ -266,7 +335,7 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(50, 5, 30, 10, 20, 10),
                 orderBook(60, 10, 70, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(BUY, 50, 5)));
         //when
         orderBook.update(event);
@@ -285,14 +354,13 @@ public abstract class OrderBookTest {
         var expected = orderBook(COINBASE, productId, now(), depth,
                 orderBook(20, 10, 10, 10),
                 orderBook(30, 5, 50, 10, 60, 10));
-        var event = new OrderBookUpdateEvent(Event.Type.L2UPDATE, COINBASE, productId, now(),
+        var event = new OrderBookUpdateEvent(L2UPDATE, COINBASE, productId, now(),
                 List.of(priceLevel(SELL, 30, 5)));
         //when
         orderBook.update(event);
 
-        System.out.println(orderBook.orderBook(depth));
         //then
-        Assertions.assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
+        assertEquals(expected.orderBook(depth), orderBook.orderBook(depth));
     }
 
     protected abstract OrderBook orderBook(TradingVenue venue, ProductId productId, Instant lastUpdate, int depth,

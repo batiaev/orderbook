@@ -3,7 +3,8 @@ package com.batiaev.orderbook.resource;
 import com.batiaev.orderbook.events.OrderBookUpdateEvent;
 import com.batiaev.orderbook.handlers.OrderBookHolder;
 import com.batiaev.orderbook.model.ProductId;
-import com.batiaev.orderbook.providers.CoinbaseClient;
+import com.batiaev.orderbook.providers.OrderBookProvider;
+import com.batiaev.orderbook.serializer.OrderBookModel;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -30,7 +31,6 @@ import static spark.Service.SPARK_DEFAULT_PORT;
 import static spark.Spark.*;
 
 public class OrderBookApi {
-    private final static ObjectMapper MAPPER = new ObjectMapper();
     private final long MAX_WAIT = Duration.ofSeconds(30).toMillis();
     private static final Map<String, String> corsHeaders = Map.of(
             "Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS",
@@ -38,23 +38,25 @@ public class OrderBookApi {
             "Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin,",
             "Access-Control-Allow-Credentials", "true"
     );
-    private final CoinbaseClient client;
+    private final OrderBookProvider client;
     private final String channel;
     private final OrderBookHolder orderBookHolder;
     private final ObjectMapper objectMapper;
+    private final OrderBookFeed orderBookFeed;
 
-    public OrderBookApi(CoinbaseClient client, String channel,
+    public OrderBookApi(OrderBookProvider client, String channel,
                         OrderBookHolder orderBookHolder) {
-        this(client, channel, orderBookHolder, new ObjectMapper());
+        this(client, channel, orderBookHolder, new ObjectMapper().registerModule(new OrderBookModel()));
     }
 
-    public OrderBookApi(CoinbaseClient client, String channel,
+    public OrderBookApi(OrderBookProvider client, String channel,
                         OrderBookHolder orderBookHolder,
                         ObjectMapper objectMapper) {
         this.client = client;
         this.channel = channel;
         this.orderBookHolder = orderBookHolder;
         this.objectMapper = objectMapper;
+        this.orderBookFeed = new OrderBookFeed(objectMapper, orderBookHolder);
     }
 
     public void start() {
@@ -63,12 +65,20 @@ public class OrderBookApi {
 
     public void start(int port) {
         Spark.port(port);
+        webSocket("/orderbook", orderBookFeed);
         after((request, response) -> corsHeaders.forEach(response::header));
+        get("/products", this::getProducts);
         path("/orderbooks", () -> {
             get("", this::getOrderBooks);
             get("/:product", this::getOrderBook);
             get("/:product/groupBy/:group", this::groupOrderBook);
         });
+    }
+
+    private Object getProducts(Request request, Response res) {
+        return ok(res, List.of(//"CRV-USD", "PERP-USDT", "MATH-USD", "SOL-ETH", "DOGE-USDT", "BCH-EUR",
+                "BTC-USD", "MUSD-USD", "OOKI-USD", "ETH-USD", "FIL-EUR", "MCO2-USDT", "POND-USD", "PAX-USD",
+                "BCH-USD", "ETH-EUR"));
     }
 
     private Object getOrderBooks(Request req, Response res) throws JsonProcessingException {
@@ -77,7 +87,7 @@ public class OrderBookApi {
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
-    private Object groupOrderBook(Request req, Response res) throws JsonProcessingException {
+    private Object groupOrderBook(Request req, Response res) {
         var product = ofNullable(req.params("product")).map(ProductId::productId);
         if (product.isEmpty()) return res;
         var productId = product.get();
@@ -86,7 +96,7 @@ public class OrderBookApi {
         return ok(res, ob);
     }
 
-    private Object getOrderBook(Request req, Response res) throws JsonProcessingException, InterruptedException {
+    private Object getOrderBook(Request req, Response res) throws InterruptedException {
         String prd = req.params("product");
         if (prd == null) return res;
         client.sendMessage(withEvent(channel, prd));
@@ -122,7 +132,7 @@ public class OrderBookApi {
     }
 
     private ObjectNode toJson(OrderBookUpdateEvent.PriceLevel priceLevel, BigDecimal total) {
-        var objectNode = MAPPER.createObjectNode();
+        var objectNode = objectMapper.createObjectNode();
         objectNode.put("side", priceLevel.side().toString());
         objectNode.put("priceLevel", priceLevel.priceLevel());
         objectNode.put("size", priceLevel.size());
@@ -130,10 +140,14 @@ public class OrderBookApi {
         return objectNode;
     }
 
-    private Object ok(Response res, Object result) throws JsonProcessingException {
+    private Object ok(Response res, Object result) {
         res.status(SC_OK);
         res.type(APPLICATION_JSON.toString());
-        return objectMapper.writeValueAsString(result);
+        try {
+            return objectMapper.writeValueAsString(result);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Object error(Response res, int code, String errorMessage) {

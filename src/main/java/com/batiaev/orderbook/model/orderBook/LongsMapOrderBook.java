@@ -78,7 +78,9 @@ public class LongsMapOrderBook implements OrderBook {
 
     @Override
     public TwoWayQuote getQuote(BigDecimal volume) {
-        return new TwoWayQuote(fromPrice(asks.iterator().next().key), fromSize(bids.iterator().next().key));
+        var bid = fromPrice(asks.size() > 0 ? asks.iterator().next().key : 0);
+        var offer = fromSize(bids.size() > 0 ? bids.iterator().next().key : 0);
+        return new TwoWayQuote(bid, offer);
     }
 
     @Override
@@ -123,7 +125,7 @@ public class LongsMapOrderBook implements OrderBook {
         long firstAsk = asks.size() == 0 ? 0 : firstAsk();
         long firstBid = bids.size() == 0 ? 0 : firstBid();
         if (side.equals(BUY)) {
-            if (price > firstAsk) {
+            if (firstAsk != 0 && price > firstAsk) {
                 logger.trace("Invalid price update: bidUpdate = {} and bestAsk= {}", price, firstAsk);
                 return; //should never happen
             }
@@ -136,7 +138,7 @@ public class LongsMapOrderBook implements OrderBook {
                     asks.remove(firstAsk);
             }
         } else {
-            if (price < firstBid) {
+            if (firstBid != 0 && price < firstBid) {
                 logger.trace("Invalid price update: askUpdate = {} and bestBid= {}", price, firstBid);
                 return; //should never happen
             }

@@ -13,9 +13,13 @@ import java.util.*;
 import static com.batiaev.orderbook.model.Side.BUY;
 import static com.batiaev.orderbook.model.Side.SELL;
 import static com.batiaev.orderbook.utils.OrderBookUtils.*;
+import static java.lang.Math.min;
+import static java.lang.System.arraycopy;
+import static java.math.BigDecimal.valueOf;
 import static java.time.Instant.EPOCH;
 import static java.time.Instant.now;
 import static java.util.Arrays.asList;
+import static java.util.Arrays.fill;
 import static java.util.Collections.reverseOrder;
 import static java.util.Comparator.naturalOrder;
 
@@ -24,9 +28,9 @@ public class LongArrayOrderBook implements OrderBook {
     private final ProductId productId;
     private Instant lastUpdate;
     private int depth;
-    private final long[][] bids;
+    private final long[] bids;
     private int bidsSize;
-    private final long[][] asks;
+    private final long[] asks;
     private int asksSize;
     private BigDecimal group = BigDecimal.ZERO;
 
@@ -45,19 +49,20 @@ public class LongArrayOrderBook implements OrderBook {
         this.lastUpdate = lastUpdate;
         this.bids = convertOrderBook(BUY, bids, this.depth * 2);
         this.asks = convertOrderBook(SELL, asks, this.depth * 2);
-        this.bidsSize = this.bids.length;
-        this.asksSize = this.asks.length;
+        this.bidsSize = updateSize(this.bids);
+        this.asksSize = updateSize(this.asks);
     }
 
-    private long[][] convertOrderBook(Side side, Map<BigDecimal, BigDecimal> b, int depth) {
+    private long[] convertOrderBook(Side side, Map<BigDecimal, BigDecimal> b, int depth) {
         Comparator<BigDecimal> comparator = side.equals(BUY) ? reverseOrder() : naturalOrder();
         var tmp = new TreeMap<BigDecimal, BigDecimal>(comparator);
         tmp.putAll(b);
-        int arraySize = Math.min(depth, b.size());
-        var res = new long[arraySize][];
+        int arraySize = b.isEmpty() ? depth : min(depth, b.size());
+        var res = new long[arraySize * 2];
         int idx = 0;
         for (Map.Entry<BigDecimal, BigDecimal> entry : tmp.entrySet()) {
-            res[idx++] = new long[]{toPrice(entry.getKey()), toSize(entry.getValue())};
+            res[idx++] = toPrice(entry.getKey());
+            res[idx++] = toSize(entry.getValue());
             if (idx >= res.length)
                 return res;
         }
@@ -66,8 +71,8 @@ public class LongArrayOrderBook implements OrderBook {
 
     @Override
     public TwoWayQuote getQuote(BigDecimal volume) {
-        var bestbid = BigDecimal.valueOf(bids[0][0] / PRICE_MULTIPLIER.doubleValue());
-        var bestask = BigDecimal.valueOf(asks[0][0] / PRICE_MULTIPLIER.doubleValue());
+        var bestbid = valueOf(bids[0] / PRICE_MULTIPLIER.doubleValue());
+        var bestask = valueOf(asks[0] / PRICE_MULTIPLIER.doubleValue());
         return new TwoWayQuote(bestbid, bestask);
     }
 
@@ -91,14 +96,8 @@ public class LongArrayOrderBook implements OrderBook {
         asksSize = 0;
         lastUpdate = EPOCH;
         this.depth = depth;
-        for (long[] bid : bids) {
-            bid[0] = 0;
-            bid[1] = 0;
-        }
-        for (long[] ask : asks) {
-            ask[0] = 0;
-            ask[1] = 0;
-        }
+        fill(bids, 0);
+        fill(asks, 0);
         return update(event.productId(), event.time(), event.changes());
     }
 
@@ -113,7 +112,7 @@ public class LongArrayOrderBook implements OrderBook {
         for (OrderBookUpdateEvent.PriceLevel change : changes) {
             update(change.side(),
                     toPrice(change.priceLevel()),
-                    change.size().multiply(SIZE_MULTIPLIER).longValue());
+                    toSize(change.size()));
         }
         bidsSize = updateSize(bids);
         asksSize = updateSize(asks);
@@ -121,17 +120,17 @@ public class LongArrayOrderBook implements OrderBook {
         return this;
     }
 
-    private int updateSize(long[][] bids) {
-        for (int i = bids.length - 1; i >= 0; i--) {
-            if (bids[i][1] != 0)
-                return i + 1;
+    private int updateSize(long[] data) {
+        for (int i = data.length - 2; i >= 0; i -= 2) {
+            if (data[i] != 0)
+                return i / 2 + 1;
         }
         return 0;
     }
 
     @Override
     public synchronized List<OrderBookUpdateEvent.PriceLevel> orderBook(int depth) {
-        int size = Math.min(depth * 2, asksSize + bidsSize);
+        int size = min(depth * 2, asksSize + bidsSize);
         final var priceLevels = new OrderBookUpdateEvent.PriceLevel[size];
         final var askString = filteredList(asks, asksSize, SELL, depth);
         final var bidString = filteredList(bids, bidsSize, BUY, depth);
@@ -145,111 +144,114 @@ public class LongArrayOrderBook implements OrderBook {
         return asList(priceLevels);
     }
 
-    private List<OrderBookUpdateEvent.PriceLevel> filteredList(long[][] data, int dataSize, Side side, int depth) {
-        int resultSize = Math.min(depth, dataSize);
-        OrderBookUpdateEvent.PriceLevel[] a = new OrderBookUpdateEvent.PriceLevel[resultSize];
+    private List<OrderBookUpdateEvent.PriceLevel> filteredList(long[] data, int dataSize, Side side, int depth) {
+        int resultSize = min(depth, dataSize);
+        var a = new OrderBookUpdateEvent.PriceLevel[resultSize];
         int idx = 0;
-        for (long[] entry : data) {
-            var price = BigDecimal.valueOf(entry[0] / PRICE_MULTIPLIER.doubleValue());
-            var size = BigDecimal.valueOf(entry[1] / SIZE_MULTIPLIER.doubleValue());
+        for (int i = 0, dataLength = data.length - 1; i < dataLength; i += 2) {
+            var price = valueOf(data[i] / PRICE_MULTIPLIER.doubleValue());
+            var size = valueOf(data[i + 1] / SIZE_MULTIPLIER.doubleValue());
             if (idx >= resultSize) return asList(a);
-            a[idx] = new OrderBookUpdateEvent.PriceLevel(side, price, size);
-            idx++;
+            a[idx++] = new OrderBookUpdateEvent.PriceLevel(side, price, size);
         }
         return asList(a);
     }
 
     public void update(Side side, long price, long size) {
-        long[] cur = new long[]{price, size};
+        long curPrice = price;
+        long curSize = size;
+        long tmpPrice;
+        long tmpSize;
         if (side.equals(SELL)) { //process asks
-            if (price < bids[0][0]) return; //should never happen
-            int idx = binarySearch(side, asks, cur[0]);
+            if (curPrice < bids[0]) return; //should never happen
+            int idx = binarySearch(side, asks, curPrice, asksSize * 2);
             if (idx >= asks.length)
                 return;
-            if (cur[0] == asks[idx][0]) {
-                moveRemoved(cur, idx, asks);
+            if (curPrice == asks[idx]) {
+                moveRemoved(curSize, idx, asks);
                 return;
             }
-            if (cur[1] == 0)
+            if (curSize == 0)
                 return;
-            for (int i = 0; i < asks.length; i++) {
-                if (cur[0] < asks[i][0]) {
-                    long[] tmp = new long[]{asks[i][0], asks[i][1]};
-                    asks[i][0] = cur[0];
-                    asks[i][1] = cur[1];
-                    cur[0] = tmp[0];
-                    cur[1] = tmp[1];
+            for (int i = 0; i < asks.length - 1 && curPrice != 0; i += 2) {
+                if (asks[i] == 0 || curPrice < asks[i]) {
+                    tmpPrice = asks[i];
+                    tmpSize = asks[i + 1];
+                    asks[i] = curPrice;
+                    asks[i + 1] = curSize;
+                    curPrice = tmpPrice;
+                    curSize = tmpSize;
                 }
             }
-            if (asks[0][0] <= bids[0][0]) {
+            if (asks[0] <= bids[0]) {
                 int idx1 = 0;
                 int idx2 = 0;
                 while (idx2 < bids.length) {
-                    if (bids[idx2][0] < asks[0][0]) {
-                        bids[idx1][0] = bids[idx2][0];
-                        bids[idx1][1] = bids[idx2][1];
-                        idx1++;
+                    if (bids[idx2] < asks[0]) {
+                        bids[idx1] = bids[idx2];
+                        bids[idx1 + 1] = bids[idx2 + 1];
+                        idx1 += 2;
                     }
-                    idx2++;
+                    idx2 += 2;
                 }
                 while (idx1 < bids.length) {
-                    bids[idx1][0] = 0;
-                    bids[idx1][1] = 0;
-                    idx1++;
+                    bids[idx1] = 0;
+                    bids[idx1 + 1] = 0;
+                    idx1 += 2;
                 }
             }
         } else {
-            if (price > asks[0][0]) return; //should never happen
-            int idx = binarySearch(side, bids, cur[0]);
+            if (asks[0] != 0 && curPrice > asks[0]) return; //should never happen
+            int idx = binarySearch(side, bids, curPrice, bidsSize * 2);
             if (idx >= bids.length)
                 return;
-            if (cur[0] == bids[idx][0]) {
-                moveRemoved(cur, idx, bids);
+            if (curPrice == bids[idx]) {
+                moveRemoved(curSize, idx, bids);
                 return;
             }
-            if (cur[1] == 0)
+            if (curSize == 0)
                 return;
-            long[] tmp = new long[2];
-            for (int i = idx; i < bids.length; i++) {
-                if (cur[0] > bids[i][0]) {
-                    tmp[0] = bids[i][0];
-                    tmp[1] = bids[i][1];
-                    bids[i][0] = cur[0];
-                    bids[i][1] = cur[1];
-                    cur[0] = tmp[0];
-                    cur[1] = tmp[1];
+            for (int i = idx; i < bids.length - 1 && curPrice != 0; i += 2) {
+                if (bids[i] == 0 || curPrice > bids[i]) {
+                    tmpPrice = bids[i];
+                    tmpSize = bids[i + 1];
+                    bids[i] = curPrice;
+                    bids[i + 1] = curSize;
+                    curPrice = tmpPrice;
+                    curSize = tmpSize;
                 }
             }
-            if (bids[0][0] >= asks[0][0]) {
+            if (bids[0] >= asks[0]) {
                 int idx1 = 0;
                 int idx2 = 0;
                 while (idx2 < asks.length) {
-                    if (bids[0][0] >= asks[idx2][0]) {
-                        idx2++;
+                    if (bids[0] >= asks[idx2]) {
+                        idx2 += 2;
                         continue;
                     }
-                    asks[idx1][0] = asks[idx2][0];
-                    asks[idx1][1] = asks[idx2][1];
-                    idx1++;
-                    idx2++;
+                    asks[idx1] = asks[idx2];
+                    asks[idx1 + 1] = asks[idx2 + 1];
+                    idx1 += 2;
+                    idx2 += 2;
                 }
                 while (idx1 < asks.length) {
-                    asks[idx1][0] = 0;
-                    asks[idx1][1] = 0;
-                    idx1++;
+                    asks[idx1] = 0;
+                    asks[idx1 + 1] = 0;
+                    idx1 += 2;
                 }
             }
         }
     }
 
-    private void moveRemoved(long[] cur, int i, long[][] data) {
-        if (cur[1] == 0) {
-            if (data.length - (i + 1) >= 0) {
-                System.arraycopy(data, i + 1, data, i + 1 - 1, data.length - (i + 1));
-                data[data.length - 1] = new long[]{0, 0};
+    private void moveRemoved(long curSize, int i, long[] data) {
+        if (curSize == 0) {
+            if (data.length - (i + 2) >= 0) {
+                arraycopy(data, i + 2, data, i + 2 - 2, data.length - (i + 2));
+                data[data.length - 1] = 0L;
+                data[data.length - 2] = 0L;
             }
         } else {
-            data[i][1] = cur[1];
+            data[i + 1] = curSize;
         }
     }
 

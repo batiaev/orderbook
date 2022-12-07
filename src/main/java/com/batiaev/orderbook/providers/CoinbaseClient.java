@@ -92,6 +92,11 @@ public class CoinbaseClient implements OrderBookProvider {
         }
         while (!websocket.isOpen()) {
             var state = websocket.getState();
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             if (state.equals(CLOSED) || state.equals(CLOSING)) {
                 try {
                     websocket = websocket.recreate();
